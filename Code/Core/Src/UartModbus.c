@@ -50,51 +50,29 @@ void initializeModbusRegisters(void) {
     g_holdingRegisters[REG_SYSTEM_ERROR] = DEFAULT_SYSTEM_ERROR;
     g_holdingRegisters[REG_RESET_ERROR_COMMAND] = DEFAULT_RESET_ERROR_COMMAND;
     
-    // Motor 1 Registers (0x0000-0x000C)
-    g_holdingRegisters[REG_M1_CONTROL_MODE] = DEFAULT_CONTROL_MODE;
-    g_holdingRegisters[REG_M1_ENABLE] = DEFAULT_ENABLE;
-    g_holdingRegisters[REG_M1_COMMAND_SPEED] = DEFAULT_COMMAND_SPEED;
-    g_holdingRegisters[REG_M1_ACTUAL_SPEED] = DEFAULT_ACTUAL_SPEED;
-    g_holdingRegisters[REG_M1_DIRECTION] = DEFAULT_DIRECTION;
-    g_holdingRegisters[REG_M1_PID_KP] = DEFAULT_PID_KP;
-    g_holdingRegisters[REG_M1_PID_KI] = DEFAULT_PID_KI;
-    g_holdingRegisters[REG_M1_PID_KD] = DEFAULT_PID_KD;
-    g_holdingRegisters[REG_M1_STATUS_WORD] = DEFAULT_STATUS_WORD;
-    g_holdingRegisters[REG_M1_ERROR_CODE] = DEFAULT_ERROR_CODE;
-    g_holdingRegisters[REG_M1_MAX_SPEED] = DEFAULT_MAX_SPEED;
-    g_holdingRegisters[REG_M1_MIN_SPEED] = DEFAULT_MIN_SPEED;
-    g_holdingRegisters[REG_M1_MAX_ACCELERATION] = DEFAULT_MAX_ACCELERATION;
-    g_holdingRegisters[REG_M1_MAX_DECELERATION] = DEFAULT_MAX_DECELERATION;
+    // Safety Module Registers (0x0000-0x000C)
+    g_holdingRegisters[REG_ANALOG_1_ENABLE] = DEFAULT_ANALOG_1_ENABLE;
+    g_holdingRegisters[REG_ANALOG_2_ENABLE] = DEFAULT_ANALOG_2_ENABLE;
+    g_holdingRegisters[REG_ANALOG_3_ENABLE] = DEFAULT_ANALOG_3_ENABLE;
+    g_holdingRegisters[REG_ANALOG_4_ENABLE] = DEFAULT_ANALOG_4_ENABLE;
+    g_holdingRegisters[REG_DI1_ENABLE] = DEFAULT_DI1_ENABLE;
+    g_holdingRegisters[REG_DI2_ENABLE] = DEFAULT_DI2_ENABLE;
+    g_holdingRegisters[REG_DI3_ENABLE] = DEFAULT_DI3_ENABLE;
+    g_holdingRegisters[REG_DI4_ENABLE] = DEFAULT_DI4_ENABLE;
+    g_holdingRegisters[REG_RELAY_OUTPUT_CONTROL] = DEFAULT_RELAY_OUTPUT_CONTROL;
+    g_holdingRegisters[REG_RELAY1_CONTROL] = DEFAULT_RELAY1_CONTROL;
+    g_holdingRegisters[REG_RELAY2_CONTROL] = DEFAULT_RELAY2_CONTROL;
+    g_holdingRegisters[REG_RELAY3_CONTROL] = DEFAULT_RELAY3_CONTROL;
+    g_holdingRegisters[REG_RELAY4_CONTROL] = DEFAULT_RELAY4_CONTROL;
+    g_holdingRegisters[REG_SAFETY_ZONE1_THRESHOLD] = DEFAULT_SAFETY_ZONE1_THRESHOLD;
+    g_holdingRegisters[REG_SAFETY_ZONE2_THRESHOLD] = DEFAULT_SAFETY_ZONE2_THRESHOLD;
+    g_holdingRegisters[REG_SAFETY_ZONE3_THRESHOLD] = DEFAULT_SAFETY_ZONE3_THRESHOLD;
+    g_holdingRegisters[REG_SAFETY_ZONE4_THRESHOLD] = DEFAULT_SAFETY_ZONE4_THRESHOLD;
+    g_holdingRegisters[REG_PROXIMITY_THRESHOLD] = DEFAULT_PROXIMITY_THRESHOLD;
+    g_holdingRegisters[REG_SAFETY_RESPONSE_TIME] = DEFAULT_SAFETY_RESPONSE_TIME;
+    g_holdingRegisters[REG_AUTO_RESET_ENABLE] = DEFAULT_AUTO_RESET_ENABLE;
+    g_holdingRegisters[REG_SAFETY_MODE] = DEFAULT_SAFETY_MODE;
     
-    // Motor 2 Registers (0x0010-0x001C)
-    g_holdingRegisters[REG_M2_CONTROL_MODE] = DEFAULT_CONTROL_MODE;
-    g_holdingRegisters[REG_M2_ENABLE] = DEFAULT_ENABLE;
-    g_holdingRegisters[REG_M2_COMMAND_SPEED] = DEFAULT_COMMAND_SPEED;
-    g_holdingRegisters[REG_M2_ACTUAL_SPEED] = DEFAULT_ACTUAL_SPEED;
-    g_holdingRegisters[REG_M2_DIRECTION] = DEFAULT_DIRECTION;
-    g_holdingRegisters[REG_M2_PID_KP] = DEFAULT_PID_KP;
-    g_holdingRegisters[REG_M2_PID_KI] = DEFAULT_PID_KI;
-    g_holdingRegisters[REG_M2_PID_KD] = DEFAULT_PID_KD;
-    g_holdingRegisters[REG_M2_STATUS_WORD] = DEFAULT_STATUS_WORD;
-    g_holdingRegisters[REG_M2_ERROR_CODE] = DEFAULT_ERROR_CODE;
-    g_holdingRegisters[REG_M2_MAX_SPEED] = DEFAULT_MAX_SPEED;
-    g_holdingRegisters[REG_M2_MIN_SPEED] = DEFAULT_MIN_SPEED;
-    g_holdingRegisters[REG_M2_MAX_ACCELERATION] = DEFAULT_MAX_ACCELERATION;
-    g_holdingRegisters[REG_M2_MAX_DECELERATION] = DEFAULT_MAX_DECELERATION;
-    
-    // Input Registers (0x0020-0x0024)
-    g_holdingRegisters[REG_DI_STATUS_WORD] = 0;
-    g_holdingRegisters[REG_DI1_ASSIGNMENT] = 0;
-    g_holdingRegisters[REG_DI2_ASSIGNMENT] = 0;
-    g_holdingRegisters[REG_DI3_ASSIGNMENT] = 0;
-    g_holdingRegisters[REG_DI4_ASSIGNMENT] = 0;
-    
-    // Output Registers (0x0040-0x0044)  
-    g_holdingRegisters[REG_DO_STATUS_WORD] = 0;
-    g_holdingRegisters[REG_DO1_CONTROL] = 0;
-    g_holdingRegisters[REG_DO1_ASSIGNMENT] = 0;
-    g_holdingRegisters[REG_DO2_CONTROL] = 0;
-    g_holdingRegisters[REG_DO2_ASSIGNMENT] = 0;
 
     // Initialize other arrays
     for (int i = 0; i < INPUT_REG_COUNT; i++) {
@@ -110,98 +88,6 @@ void initializeModbusRegisters(void) {
     }
 }
 
-void updateSystemStatus(void) {
-    // Update system status based on current state
-    uint16_t systemStatus = 0;
-    
-    // Check if motors are running
-    if (g_holdingRegisters[REG_M1_ENABLE] && g_holdingRegisters[REG_M1_ACTUAL_SPEED] > 0) {
-        systemStatus |= 0x0001; // Motor 1 running
-    }
-    if (g_holdingRegisters[REG_M2_ENABLE] && g_holdingRegisters[REG_M2_ACTUAL_SPEED] > 0) {
-        systemStatus |= 0x0002; // Motor 2 running
-    }
-    
-    // Check for errors
-    if (g_holdingRegisters[REG_M1_ERROR_CODE] > 0 || g_holdingRegisters[REG_M2_ERROR_CODE] > 0) {
-        systemStatus |= 0x0004; // Error present
-    }
-    
-    // Check if system is ready
-    if (g_holdingRegisters[REG_M1_ENABLE] == 0 && g_holdingRegisters[REG_M2_ENABLE] == 0) {
-        systemStatus |= 0x0008; // System ready
-    }
-    
-    g_holdingRegisters[REG_SYSTEM_STATUS] = systemStatus;
-}
-
-void updateMotorStatus(void) {
-    // Update Motor 1 status word
-    uint16_t m1Status = 0;
-    if (g_holdingRegisters[REG_M1_ENABLE]) {
-        m1Status |= 0x0001; // Enabled
-        if (g_holdingRegisters[REG_M1_ACTUAL_SPEED] > 0) {
-            m1Status |= 0x0002; // Running
-        }
-        if (g_holdingRegisters[REG_M1_ACTUAL_SPEED] >= g_holdingRegisters[REG_M1_COMMAND_SPEED]) {
-            m1Status |= 0x0004; // Speed reached
-        }
-    }
-    if (g_holdingRegisters[REG_M1_ERROR_CODE] > 0) {
-        m1Status |= 0x0008; // Error
-    }
-    g_holdingRegisters[REG_M1_STATUS_WORD] = m1Status;
-    
-    // Update Motor 2 status word
-    uint16_t m2Status = 0;
-    if (g_holdingRegisters[REG_M2_ENABLE]) {
-        m2Status |= 0x0001; // Enabled
-        if (g_holdingRegisters[REG_M2_ACTUAL_SPEED] > 0) {
-            m2Status |= 0x0002; // Running
-        }
-        if (g_holdingRegisters[REG_M2_ACTUAL_SPEED] >= g_holdingRegisters[REG_M2_COMMAND_SPEED]) {
-            m2Status |= 0x0004; // Speed reached
-        }
-    }
-    if (g_holdingRegisters[REG_M2_ERROR_CODE] > 0) {
-        m2Status |= 0x0008; // Error
-    }
-    g_holdingRegisters[REG_M2_STATUS_WORD] = m2Status;
-}
-
-void updateDigitalIOStatus(void) {
-    // Update digital input status word based on discrete inputs
-    uint16_t diStatus = 0;
-    for (int i = 0; i < DISCRETE_COUNT; i++) {
-        if (g_discreteInputs[i]) {
-            diStatus |= (1 << i);
-        }
-    }
-    g_holdingRegisters[REG_DI_STATUS_WORD] = diStatus;
-    
-    // Update digital output status word based on coils
-    uint16_t doStatus = 0;
-    for (int i = 0; i < 2; i++) { // Only 2 digital outputs
-        if (g_coils[i]) {
-            doStatus |= (1 << i);
-        }
-    }
-    g_holdingRegisters[REG_DO_STATUS_WORD] = doStatus;
-}
-
-static void MX_USART2_UART_Init(void) {
-    huart2.Instance = USART2;
-    huart2.Init.BaudRate = 115200;
-    huart2.Init.WordLength = UART_WORDLENGTH_8B;
-    huart2.Init.StopBits = UART_STOPBITS_1;
-    huart2.Init.Parity = UART_PARITY_NONE;
-    huart2.Init.Mode = UART_MODE_TX_RX;
-    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(&huart2) != HAL_OK) {
-        Error_Handler();
-    }
-}
 
 uint16_t calcCRC(uint8_t *buf, int len) {
     uint16_t crc = 0xFFFF;

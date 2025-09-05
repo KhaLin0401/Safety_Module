@@ -24,52 +24,57 @@
 #define REG_PROXIMITY_ALERT_STATUS 0x0003
 #define REG_RELAY_OUTPUT_STATUS    0x0004
 #define REG_SAFETY_ERROR_CODE      0x0005
-#define REG_SYSTEM_TEMPERATURE     0x0006
 
-// Analog Input Registers
-#define REG_ANALOG_INPUT_1         0x0010
-#define REG_ANALOG_INPUT_2         0x0011
-#define REG_ANALOG_INPUT_3         0x0012
-#define REG_ANALOG_INPUT_4         0x0013
-#define REG_ANALOG_INPUT_1_RAW     0x0014
-#define REG_ANALOG_INPUT_2_RAW     0x0015
-#define REG_ANALOG_INPUT_3_RAW     0x0016
-#define REG_ANALOG_INPUT_4_RAW     0x0017
-#define REG_ANALOG_1_ENABLE        0x0018
-#define REG_ANALOG_2_ENABLE        0x0019
-#define REG_ANALOG_3_ENABLE        0x001A
-#define REG_ANALOG_4_ENABLE        0x001B
+// Analog Input Registers (Processed Values - Giá trị đã chuyển đổi)
+// CÁC THANH GHI NÀY CHỨA GIÁ TRỊ CUỐI CÙNG SAU KHI ĐÃ XỬ LÝ VÀ HIỆU CHUẨN
+#define REG_ANALOG_INPUT_1         0x0010  // Analog Input 1 - Final processed value (millivolts)
+#define REG_ANALOG_INPUT_2         0x0011  // Analog Input 2 - Final processed value (millivolts)  
+#define REG_ANALOG_INPUT_3         0x0012  // Analog Input 3 - Final processed value (millivolts)
+#define REG_ANALOG_INPUT_4         0x0013  // Analog Input 4 - Final processed value (millivolts)
+#define REG_ANALOG_COEFFICIENT     0x0014
+#define REG_ANALOG_CALIBRATION     0x0015
+#define REG_ANALOG_INPUT_1_RAW     0x0016  // Analog Input 1 - Raw ADC value (0-4095)
+#define REG_ANALOG_INPUT_2_RAW     0x0017  // Analog Input 2 - Raw ADC value (0-4095)
+#define REG_ANALOG_INPUT_3_RAW     0x0018  // Analog Input 3 - Raw ADC value (0-4095)
+#define REG_ANALOG_INPUT_4_RAW     0x0019  // Analog Input 4 - Raw ADC value (0-4095)
+#define REG_ANALOG_1_ENABLE        0x001A
+#define REG_ANALOG_2_ENABLE        0x001B
+#define REG_ANALOG_3_ENABLE        0x001C
+#define REG_ANALOG_4_ENABLE        0x001D
+#define REG_ANALOG_1_OFFSET        0x001E
+#define REG_ANALOG_2_OFFSET        0x001F
+#define REG_ANALOG_3_OFFSET        0x0020
+#define REG_ANALOG_4_OFFSET        0x0021
+
 
 // Digital Input Registers
-#define REG_DIGITAL_INPUT_STATUS   0x0020
-#define REG_DI1_STATUS             0x0021
-#define REG_DI2_STATUS             0x0022
-#define REG_DI3_STATUS             0x0023
-#define REG_DI4_STATUS             0x0024
-#define REG_DI1_ENABLE             0x0025
-#define REG_DI2_ENABLE             0x0026
-#define REG_DI3_ENABLE             0x0027
-#define REG_DI4_ENABLE             0x0028
+#define REG_DI1_STATUS             0x0022
+#define REG_DI2_STATUS             0x0023
+#define REG_DI3_STATUS             0x0024
+#define REG_DI4_STATUS             0x0025
+#define REG_DI1_ENABLE             0x0026
+#define REG_DI2_ENABLE             0x0027
+#define REG_DI3_ENABLE             0x0028
+#define REG_DI4_ENABLE             0x0029
 
 // Relay Output Control Registers  
-#define REG_RELAY_OUTPUT_CONTROL   0x0030
-#define REG_RELAY1_CONTROL         0x0031
-#define REG_RELAY2_CONTROL         0x0032
-#define REG_RELAY3_CONTROL         0x0033
-#define REG_RELAY4_CONTROL         0x0034
+#define REG_RELAY1_CONTROL         0x002A
+#define REG_RELAY2_CONTROL         0x002B
+#define REG_RELAY3_CONTROL         0x002C
+#define REG_RELAY4_CONTROL         0x002D
 
 // Safety Configuration Registers
-#define REG_SAFETY_ZONE1_THRESHOLD 0x0040
-#define REG_SAFETY_ZONE2_THRESHOLD 0x0041
-#define REG_SAFETY_ZONE3_THRESHOLD 0x0042
-#define REG_SAFETY_ZONE4_THRESHOLD 0x0043
-#define REG_PROXIMITY_THRESHOLD    0x0050
-#define REG_SAFETY_RESPONSE_TIME   0x0051
-#define REG_AUTO_RESET_ENABLE      0x0052
-#define REG_SAFETY_MODE            0x0053
+#define REG_SAFETY_ZONE1_THRESHOLD 0x002E
+#define REG_SAFETY_ZONE2_THRESHOLD 0x002F
+#define REG_SAFETY_ZONE3_THRESHOLD 0x0030
+#define REG_SAFETY_ZONE4_THRESHOLD 0x0031
+#define REG_PROXIMITY_THRESHOLD    0x0032
+#define REG_SAFETY_RESPONSE_TIME   0x0033
+#define REG_AUTO_RESET_ENABLE      0x0034
+#define REG_SAFETY_MODE            0x0035
 
-// Total register count
-#define TOTAL_HOLDING_REG_COUNT    0x0045  // Total number of registers
+// Total register count  
+#define TOTAL_HOLDING_REG_COUNT    0x0036  // Total number of registers (0x0000-0x0035)
 
 // Default Values for System Registers
 #define DEFAULT_DEVICE_ID          5
@@ -92,17 +97,40 @@
 #define DEFAULT_ANALOG_INPUT_1_RAW  0       // Giá trị raw mặc định cho AI1
 #define DEFAULT_ANALOG_INPUT_2_RAW  0       // Giá trị raw mặc định cho AI2
 #define DEFAULT_ANALOG_INPUT_3_RAW  0       // Giá trị raw mặc định cho AI3
-#define DEFAULT_ANALOG_INPUT_4_RAW  0       // Giá trị raw mặc định cho AI4
+#define DEFAULT_ANALOG_INPUT_4_RAW  0  
+#define DEFAULT_ANALOG_COEFFICIENT  20      // Giá trị hệ số mặc định cho AI
+#define DEFAULT_ANALOG_CALIBRATION  15       // Giá trị điều chỉnh mặc định cho AI
+#define DEFAULT_ANALOG_1_ENABLE     0
+#define DEFAULT_ANALOG_2_ENABLE     0
+#define DEFAULT_ANALOG_3_ENABLE     0
+#define DEFAULT_ANALOG_4_ENABLE     0
+
+#define DEFAULT_DI1_ENABLE     0
+#define DEFAULT_DI2_ENABLE     0
+#define DEFAULT_DI3_ENABLE     0
+#define DEFAULT_DI4_ENABLE     0
+#define DEFAULT_RELAY_OUTPUT_CONTROL 0x0000
+#define DEFAULT_RELAY1_CONTROL       0
+#define DEFAULT_RELAY2_CONTROL       0
+#define DEFAULT_RELAY3_CONTROL       0
+#define DEFAULT_RELAY4_CONTROL       0
+
+#define DEFAULT_SAFETY_ZONE1_THRESHOLD  500
+#define DEFAULT_SAFETY_ZONE2_THRESHOLD  1000
+#define DEFAULT_SAFETY_ZONE3_THRESHOLD  1500
+#define DEFAULT_SAFETY_ZONE4_THRESHOLD  2000
+#define DEFAULT_PROXIMITY_THRESHOLD     100
+#define DEFAULT_SAFETY_RESPONSE_TIME    50
+#define DEFAULT_AUTO_RESET_ENABLE       0
+#define DEFAULT_SAFETY_MODE             1
 
 // Giá trị mặc định cho các thanh ghi Digital Input
-#define DEFAULT_DIGITAL_INPUT_STATUS 0x0000  // Trạng thái mặc định của DI
 #define DEFAULT_DI1_STATUS          0        // Trạng thái mặc định DI1
 #define DEFAULT_DI2_STATUS          0        // Trạng thái mặc định DI2
 #define DEFAULT_DI3_STATUS          0        // Trạng thái mặc định DI3
 #define DEFAULT_DI4_STATUS          0        // Trạng thái mặc định DI4
 
 // Giá trị mặc định cho các thanh ghi Relay Output
-#define DEFAULT_RELAY_OUTPUT_CONTROL 0x0000  // Điều khiển mặc định relay
 #define DEFAULT_RELAY1_CONTROL       0       // Điều khiển mặc định relay 1
 #define DEFAULT_RELAY2_CONTROL       0       // Điều khiển mặc định relay 2
 #define DEFAULT_RELAY3_CONTROL       0       // Điều khiển mặc định relay 3
