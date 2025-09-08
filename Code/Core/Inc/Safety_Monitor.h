@@ -36,8 +36,7 @@ typedef struct
     uint8_t sensor_id;              // Sensor identifier (0-3)
     uint8_t sensor_active;          // Sensor enable/disable flag
     
-    /* Raw data */
-    uint16_t raw_value;             // Raw ADC value (0-4095)
+    
     float voltage;
     float filtered_value;           // Filtered value
     
@@ -67,13 +66,15 @@ typedef struct
 {
     uint8_t sensor_id;              // Sensor identifier (0-3)
     uint8_t sensor_active;   
-    uint8_t sensor_value;          // Sensor enable/disable flag
+    uint8_t sensor_value;  
+            // Sensor enable/disable flag
     /* Current state */
     uint8_t previous_state;         // Previous state for edge detection
     uint8_t debounced_state;        // Debounced state
     
     /* Configuration */
-    uint8_t active_level;           // Active level (0=active low, 1=active high)
+    uint8_t active_level;   
+    uint8_t sensor_state;        // Active level (0=active low, 1=active high)
     uint16_t debounce_time_ms;      // Debounce time in milliseconds
     
     /* Edge detection */
@@ -85,15 +86,12 @@ typedef struct
     uint8_t sensor_status;          // Current sensor status
     uint32_t state_change_count;    // State change counter
     uint32_t error_count;           // Error counter
+    uint8_t alarm_flags;            // Alarm condition flags
 } Digital_Sensor_t;
 
 /* Safety system global data structure */
 typedef struct
-{
-    /* Sensor arrays */
-    Analog_Sensor_t analog_sensors[ANALOG_SENSOR_COUNT];
-    Digital_Sensor_t digital_sensors[DIGITAL_SENSOR_COUNT];
-    
+{    
     /* System status */
     Safety_Monitor_Status_t system_status;
     uint8_t emergency_stop_active;
@@ -112,106 +110,115 @@ typedef struct
 
 /* ========================== GLOBAL VARIABLES ========================== */
 extern Safety_System_Data_t g_safety_system;
+extern Analog_Sensor_t g_analog_sensors[ANALOG_SENSOR_COUNT];
+extern Digital_Sensor_t g_digital_sensors[DIGITAL_SENSOR_COUNT];
 
 /* ========================== FUNCTION DECLARATIONS ========================== */
 
-/* ========================== CORE FUNCTIONS - STREAMLINED ========================== */
+/* ========================== CÁC HÀM CHÍNH - TỐI ƯU HÓA ========================== */
 /**
- * @brief Initialize Safety Monitor system
- * @param None
+ * @brief Khởi tạo hệ thống giám sát an toàn
+ * @param Không có
  * @return HAL_StatusTypeDef
  */
 HAL_StatusTypeDef Safety_Monitor_Init(void);
 
 /**
- * @brief Main safety monitor processing function (called from Safety Task)
- * @param None
- * @return Safety_Monitor_Status_t Current system status
+ * @brief Hàm xử lý giám sát an toàn chính (được gọi từ Safety Task)
+ * @param Không có
+ * @return Safety_Monitor_Status_t Trạng thái hệ thống hiện tại
  */
 Safety_Monitor_Status_t Safety_Monitor_Process(void);
 
 /**
- * @brief Process all analog sensors (reading, filtering, threshold checking)
- * @param None
+ * @brief Xử lý tất cả các cảm biến tương tự (đọc, lọc, kiểm tra ngưỡng)
+ * @param Không có
  * @return HAL_StatusTypeDef
  */
 HAL_StatusTypeDef Safety_Process_Analog_Sensors(void);
 
-/* ========================== SENSOR ACCESS FUNCTIONS ========================== */
 /**
- * @brief Get analog sensor processed value (final calibrated value)
- * @param sensor_id: Sensor ID (0-3)
- * @return uint16_t Processed sensor value (millivolts)
+ * @brief Xử lý tất cả các cảm biến số (đọc, lọc, kiểm tra ngưỡng)
+ * @param Không có
+ * @return HAL_StatusTypeDef
+ */
+HAL_StatusTypeDef Safety_Process_Digital_Sensors(void);
+
+/* ========================== CÁC HÀM TRUY CẬP CẢM BIẾN ========================== */
+/**
+ * @brief Lấy giá trị đã xử lý của cảm biến tương tự (giá trị cuối cùng đã hiệu chuẩn)
+ * @param sensor_id: ID cảm biến (0-3)
+ * @return uint16_t Giá trị cảm biến đã xử lý (millivolt)
  */
 uint16_t Safety_Get_Analog_Value(uint8_t sensor_id);
 
 /**
- * @brief Get analog sensor voltage (in Volts)
- * @param sensor_id: Sensor ID (0-3)
- * @return float Voltage value in Volts
+ * @brief Lấy điện áp cảm biến tương tự (đơn vị Volt)
+ * @param sensor_id: ID cảm biến (0-3)
+ * @return float Giá trị điện áp tính bằng Volt
  */
 float Safety_Get_Analog_Voltage(uint8_t sensor_id);
 
 /**
- * @brief Get digital sensor state
- * @param sensor_id: Sensor ID (0-3)
- * @return uint8_t Current state (0 or 1)
+ * @brief Lấy trạng thái cảm biến số
+ * @param sensor_id: ID cảm biến (0-3)
+ * @return uint8_t Trạng thái hiện tại (0 hoặc 1)
  */
 uint8_t Safety_Get_Digital_State(uint8_t sensor_id);
 
-/* ========================== CONFIGURATION FUNCTIONS ========================== */
+/* ========================== CÁC HÀM CẤU HÌNH ========================== */
 /**
- * @brief Set analog sensor calibration
- * @param sensor_id: Sensor ID (0-3)
- * @param offset: Calibration offset
- * @param gain: Calibration gain
+ * @brief Thiết lập hiệu chuẩn cảm biến tương tự
+ * @param sensor_id: ID cảm biến (0-3)
+ * @param offset: Độ lệch hiệu chuẩn
+ * @param gain: Hệ số khuếch đại hiệu chuẩn
  * @return HAL_StatusTypeDef
  */
 HAL_StatusTypeDef Safety_Set_Analog_Calibration(uint8_t sensor_id, float offset, float gain);
 
 /**
- * @brief Enable/disable analog sensor
- * @param sensor_id: Sensor ID (0-3)
- * @param enable: Enable flag (0=disable, 1=enable)
+ * @brief Bật/tắt cảm biến tương tự
+ * @param sensor_id: ID cảm biến (0-3)
+ * @param enable: Cờ bật/tắt (0=tắt, 1=bật)
  * @return HAL_StatusTypeDef
  */
 HAL_StatusTypeDef Safety_Set_Analog_Enable(uint8_t sensor_id, uint8_t enable);
 
 /**
- * @brief Enable/disable digital sensor
- * @param sensor_id: Sensor ID (0-3)
- * @param enable: Enable flag (0=disable, 1=enable)
+ * @brief Bật/tắt cảm biến số
+ * @param sensor_id: ID cảm biến (0-3)
+ * @param enable: Cờ bật/tắt (0=tắt, 1=bật)
  * @return HAL_StatusTypeDef
  */
 HAL_StatusTypeDef Safety_Set_Digital_Enable(uint8_t sensor_id, uint8_t enable);
 
 /**
- * @brief Get overall system safety status
- * @param None
- * @return Safety_Monitor_Status_t Current system status
+ * @brief Lấy trạng thái an toàn tổng thể của hệ thống
+ * @param Không có
+ * @return Safety_Monitor_Status_t Trạng thái hệ thống hiện tại
  */
 Safety_Monitor_Status_t Safety_Get_System_Status(void);
 
-/* ========================== MODBUS INTERFACE FUNCTIONS ========================== */
+/* ========================== CÁC HÀM GIAO TIẾP MODBUS ========================== */
 /**
- * @brief Load safety parameters from Modbus registers
- * @param None
+ * @brief Tải tham số an toàn từ thanh ghi Modbus
+ * @param Không có
  * @return HAL_StatusTypeDef
  */
 HAL_StatusTypeDef Safety_Register_Load(void);
 
 /**
- * @brief Save safety data to Modbus registers
- * @param None
+ * @brief Lưu dữ liệu an toàn vào thanh ghi Modbus
+ * @param Không có
  * @return HAL_StatusTypeDef
  */
 HAL_StatusTypeDef Safety_Register_Save(void);
 
 /**
- * @brief Read analog sensor value from ADC
- * @param sensor_id: Sensor ID (0-3)
- * @return uint16_t Raw ADC value (0-4095)
+ * @brief Chuyển đổi giá trị cảm biến sang khoảng cách
+ * @param sensor_id: ID cảm biến (0-3)
+ * @return float Giá trị khoảng cách
  */
-uint16_t Safety_Read_Analog_Sensor(uint8_t sensor_id);
+float Safety_Convert_To_Distance(uint8_t sensor_id);
 
 #endif /* SAFETY_MONITOR_H */

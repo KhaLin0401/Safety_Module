@@ -53,33 +53,37 @@
 
 | **Address** | **Name** | **Type** | **R/W** | **Description** | **Default** |
 |-------------|----------|----------|---------|-----------------|-------------|
-| 0x0022 | DI1_Status | uint16 | R | Digital Input 1 status | 0 |
-| 0x0023 | DI2_Status | uint16 | R | Digital Input 2 status | 0 |
-| 0x0024 | DI3_Status | uint16 | R | Digital Input 3 status | 0 |
-| 0x0025 | DI4_Status | uint16 | R | Digital Input 4 status | 0 |
-| 0x0026 | DI1_Enable | uint16 | R/W | Enable/disable Digital Input 1 | 0 |
-| 0x0027 | DI2_Enable | uint16 | R/W | Enable/disable Digital Input 2 | 0 |
-| 0x0028 | DI3_Enable | uint16 | R/W | Enable/disable Digital Input 3 | 0 |
-| 0x0029 | DI4_Enable | uint16 | R/W | Enable/disable Digital Input 4 | 0 |
+| 0x0022 | DI1_Status | uint16 | R | Trạng thái Digital Input 1 | 0 |
+| 0x0023 | DI2_Status | uint16 | R | Trạng thái Digital Input 2 | 0 |
+| 0x0024 | DI3_Status | uint16 | R | Trạng thái Digital Input 3 | 0 |
+| 0x0025 | DI4_Status | uint16 | R | Trạng thái Digital Input 4 | 0 |
+| 0x0026 | DI1_Enable | uint16 | R/W | Bật/tắt Digital Input 1 | 0 |
+| 0x0027 | DI2_Enable | uint16 | R/W | Bật/tắt Digital Input 2 | 0 |
+| 0x0028 | DI3_Enable | uint16 | R/W | Bật/tắt Digital Input 3 | 0 |
+| 0x0029 | DI4_Enable | uint16 | R/W | Bật/tắt Digital Input 4 | 0 |
+| 0x002A | DI1_Active_Level | uint16 | R/W | Mức tích cực Digital Input 1 (0=Low, 1=High) | 0 |
+| 0x002B | DI2_Active_Level | uint16 | R/W | Mức tích cực Digital Input 2 (0=Low, 1=High) | 0 |
+| 0x002C | DI3_Active_Level | uint16 | R/W | Mức tích cực Digital Input 3 (0=Low, 1=High) | 0 |
+| 0x002D | DI4_Active_Level | uint16 | R/W | Mức tích cực Digital Input 4 (0=Low, 1=High) | 0 |
 
 ## 🟣 Relay Output Control Registers (0x002A - 0x002D)
 
 | **Address** | **Name** | **Type** | **R/W** | **Description** | **Default** |
 |-------------|----------|----------|---------|-----------------|-------------|
-| 0x002A | Relay1_Control | uint16 | R/W | Control Relay Output 1 | 0 |
-| 0x002B | Relay2_Control | uint16 | R/W | Control Relay Output 2 | 0 |
-| 0x002C | Relay3_Control | uint16 | R/W | Control Relay Output 3 | 0 |
-| 0x002D | Relay4_Control | uint16 | R/W | Control Relay Output 4 | 0 |
+| 0x0040 | Relay1_Control | uint16 | R/W | Control Relay Output 1 | 0 |
+| 0x0041 | Relay2_Control | uint16 | R/W | Control Relay Output 2 | 0 |
+| 0x0042 | Relay3_Control | uint16 | R/W | Control Relay Output 3 | 0 |
+| 0x0043 | Relay4_Control | uint16 | R/W | Control Relay Output 4 | 0 |
 
-## 🟣 Safety Configuration Registers (0x002E - 0x0035)
+## 🟣 Safety Configuration Registers (0x0044 - 0x004B)
 
 | **Address** | **Name** | **Type** | **R/W** | **Description** | **Default** |
 |-------------|----------|----------|---------|-----------------|-------------|
-| 0x002E | Safety_Zone1_Threshold | uint16 | R/W | Safety Zone 1 threshold | 500 |
-| 0x002F | Safety_Zone2_Threshold | uint16 | R/W | Safety Zone 2 threshold | 1000 |
-| 0x0030 | Safety_Zone3_Threshold | uint16 | R/W | Safety Zone 3 threshold | 1500 |
-| 0x0031 | Safety_Zone4_Threshold | uint16 | R/W | Safety Zone 4 threshold | 2000 |
-| 0x0032 | Proximity_Threshold | uint16 | R/W | Proximity sensor threshold | 100 |
-| 0x0033 | Safety_Response_Time | uint16 | R/W | Safety response time (ms) | 50 |
-| 0x0034 | Auto_Reset_Enable | uint16 | R/W | Enable auto reset (0=Off, 1=On) | 0 |
-| 0x0035 | Safety_Mode | uint16 | R/W | Safety mode (1=Normal, 2=Warning, 3=Protective Stop, 4=Emergency Stop) | 1 |
+| 0x0044 | Safety_Zone1_Threshold | uint16 | R/W | Safety Zone 1 threshold | 500 |
+| 0x0045 | Safety_Zone2_Threshold | uint16 | R/W | Safety Zone 2 threshold | 1000 |
+| 0x0046 | Safety_Zone3_Threshold | uint16 | R/W | Safety Zone 3 threshold | 1500 |
+| 0x0047 | Safety_Zone4_Threshold | uint16 | R/W | Safety Zone 4 threshold | 2000 |
+| 0x0048 | Proximity_Threshold | uint16 | R/W | Proximity sensor threshold | 100 |
+| 0x0049 | Safety_Response_Time | uint16 | R/W | Safety response time (ms) | 50 |
+| 0x004A | Auto_Reset_Enable | uint16 | R/W | Enable auto reset (0=Off, 1=On) | 0 |
+| 0x004B | Safety_Mode | uint16 | R/W | Safety mode (1=Normal, 2=Warning, 3=Protective Stop, 4=Emergency Stop) | 1 |

@@ -77,6 +77,10 @@ void Error_Handler(void);
 #define DI3_GPIO_Port GPIOB
 #define DI4_Pin GPIO_PIN_15
 #define DI4_GPIO_Port GPIOB
+#define RELAY2_Pin GPIO_PIN_4
+#define RELAY2_GPIO_Port GPIOB
+#define RELAY1_Pin GPIO_PIN_5
+#define RELAY1_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

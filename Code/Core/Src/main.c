@@ -19,6 +19,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "UartModbus.h"
+#include "Safety_Monitor.h"
+#include "Output_Control.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -42,6 +45,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
 
 TIM_HandleTypeDef htim2;
 
@@ -54,6 +58,13 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for modbusTask */
+osThreadId_t modbusTaskHandle;
+const osThreadAttr_t modbusTask_attributes = {
+  .name = "modbusTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -61,10 +72,12 @@ const osThreadAttr_t defaultTask_attributes = {
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 void StartDefaultTask(void *argument);
+void StartModbusTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -104,11 +117,13 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_TIM2_Init();
   MX_USART2_UART_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-
+  initializeModbusRegisters();
+  Safety_Monitor_Init();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -133,6 +148,9 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* creation of modbusTask */
+  modbusTaskHandle = osThreadNew(StartModbusTask, NULL, &modbusTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -225,12 +243,12 @@ static void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 4;
+  hadc1.Init.NbrOfConversion = 1;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -238,26 +256,26 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
- sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
 
- sConfig.Channel = ADC_CHANNEL_0; sConfig.Rank = ADC_REGULAR_RANK_1;
- HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
 
- sConfig.Channel = ADC_CHANNEL_1; sConfig.Rank = ADC_REGULAR_RANK_2;
- HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
 
- sConfig.Channel = ADC_CHANNEL_4; sConfig.Rank = ADC_REGULAR_RANK_3;
- HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  sConfig.Channel = ADC_CHANNEL_4;
+  sConfig.Rank = ADC_REGULAR_RANK_3;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
 
- sConfig.Channel = ADC_CHANNEL_8; sConfig.Rank = ADC_REGULAR_RANK_4;
- HAL_ADC_ConfigChannel(&hadc1, &sConfig);
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC1_Init 2 */
+  sConfig.Channel = ADC_CHANNEL_8;
+  sConfig.Rank = ADC_REGULAR_RANK_4;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+ /* USER CODE BEGIN ADC1_Init 2 */
 
-  /* USER CODE END ADC1_Init 2 */
+ /* USER CODE END ADC1_Init 2 */
 
 }
 
@@ -340,6 +358,22 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -357,10 +391,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LED1_Pin|LED2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LED1_Pin|LED2_Pin|RELAY2_Pin|RELAY1_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : LED1_Pin LED2_Pin */
-  GPIO_InitStruct.Pin = LED1_Pin|LED2_Pin;
+  /*Configure GPIO pins : LED1_Pin LED2_Pin RELAY2_Pin RELAY1_Pin */
+  GPIO_InitStruct.Pin = LED1_Pin|LED2_Pin|RELAY2_Pin|RELAY1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -400,6 +434,38 @@ void StartDefaultTask(void *argument)
     osDelay(1);
   }
   /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartModbusTask */
+/**
+* @brief Function implementing the modbusTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartModbusTask */
+void StartModbusTask(void *argument)
+{
+  /* USER CODE BEGIN StartModbusTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    // Update Modbus counter
+    g_modbusCounter++;
+    
+    // Check for UART timeout (10 seconds)
+    if (HAL_GetTick() - g_lastUARTActivity > 10000) {
+      resetUARTCommunication();
+      g_lastUARTActivity = HAL_GetTick();
+    }
+    
+    // Process Modbus frame if received
+    if (frameReceived) {
+      processModbusFrame();
+    }
+    
+    osDelay(100); // 100ms delay
+  }
+  /* USER CODE END StartModbusTask */
 }
 
 /**

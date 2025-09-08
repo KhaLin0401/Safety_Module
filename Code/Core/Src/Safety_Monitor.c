@@ -15,7 +15,7 @@ extern ADC_HandleTypeDef hadc1;
 #define MAX_ANALOG_SENSORS      4
 #define MAX_DIGITAL_SENSORS     4
 #define VOLTAGE_SCALE_FACTOR    1000.0f
-#define OFFSET_SCALE_FACTOR     1000.0f
+#define OFFSET_SCALE_FACTOR     100.0f
 
 // Khai báo biến toàn cục
 Safety_System_Data_t g_safety_system;
@@ -28,22 +28,22 @@ uint16_t adc_buffer[4];
 HAL_StatusTypeDef Safety_Monitor_Init(void){
     // Khởi tạo giá trị mặc định cho cảm biến analog
     HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer, 4);
-    
-    g_holdingRegisters[REG_DEVICE_ID] = DEFAULT_DEVICE_ID;
-    g_holdingRegisters[REG_CONFIG_BAUDRATE] = DEFAULT_CONFIG_BAUDRATE;
-    g_holdingRegisters[REG_CONFIG_PARITY] = DEFAULT_CONFIG_PARITY;
-    g_holdingRegisters[REG_CONFIG_STOP_BIT] = DEFAULT_CONFIG_STOP_BIT;
-    g_holdingRegisters[REG_MODULE_TYPE] = DEFAULT_MODULE_TYPE;
-    g_holdingRegisters[REG_FIRMWARE_VERSION] = DEFAULT_FIRMWARE_VERSION;
-    g_holdingRegisters[REG_HARDWARE_VERSION] = DEFAULT_HARDWARE_VERSION;
-    g_holdingRegisters[REG_SYSTEM_STATUS] = DEFAULT_SYSTEM_STATUS;
-    g_holdingRegisters[REG_SYSTEM_ERROR] = DEFAULT_SYSTEM_ERROR;
-    g_holdingRegisters[REG_RESET_ERROR_COMMAND] = DEFAULT_RESET_ERROR_COMMAND;
 
-    g_analog_sensors[0].raw_value = DEFAULT_ANALOG_INPUT_1;
-    g_analog_sensors[1].raw_value = DEFAULT_ANALOG_INPUT_2; 
-    g_analog_sensors[2].raw_value = DEFAULT_ANALOG_INPUT_3;
-    g_analog_sensors[3].raw_value = DEFAULT_ANALOG_INPUT_4;
+    // g_holdingRegisters[REG_DEVICE_ID] = DEFAULT_DEVICE_ID;
+    // g_holdingRegisters[REG_CONFIG_BAUDRATE] = DEFAULT_CONFIG_BAUDRATE;
+    // g_holdingRegisters[REG_CONFIG_PARITY] = DEFAULT_CONFIG_PARITY;
+    // g_holdingRegisters[REG_CONFIG_STOP_BIT] = DEFAULT_CONFIG_STOP_BIT;
+    // g_holdingRegisters[REG_MODULE_TYPE] = DEFAULT_MODULE_TYPE;
+    // g_holdingRegisters[REG_FIRMWARE_VERSION] = DEFAULT_FIRMWARE_VERSION;
+    // g_holdingRegisters[REG_HARDWARE_VERSION] = DEFAULT_HARDWARE_VERSION;
+    // g_holdingRegisters[REG_SYSTEM_STATUS] = DEFAULT_SYSTEM_STATUS;
+    // g_holdingRegisters[REG_SYSTEM_ERROR] = DEFAULT_SYSTEM_ERROR;
+    // g_holdingRegisters[REG_RESET_ERROR_COMMAND] = DEFAULT_RESET_ERROR_COMMAND;
+
+    // g_analog_sensors[0].raw_value = DEFAULT_ANALOG_INPUT_1;
+    // g_analog_sensors[1].raw_value = DEFAULT_ANALOG_INPUT_2; 
+    // g_analog_sensors[2].raw_value = DEFAULT_ANALOG_INPUT_3;
+    // g_analog_sensors[3].raw_value = DEFAULT_ANALOG_INPUT_4;
     
     // Khởi tạo trạng thái hoạt động cho cảm biến analog
     g_analog_sensors[0].sensor_active = DEFAULT_ANALOG_1_ENABLE;
@@ -86,132 +86,155 @@ HAL_StatusTypeDef Safety_Monitor_Init(void){
 // Xử lý dữ liệu từ các cảm biến
 Safety_Monitor_Status_t Safety_Monitor_Process(void){
     uint32_t current_time = HAL_GetTick();
+    Safety_Monitor_Status_t system_status = SAFETY_MONITOR_OK;
 
-    // Xử lý cảm biến analog
+    // Xử lý tất cả các cảm biến
+    Safety_Process_Analog_Sensors();
+    Safety_Process_Digital_Sensors();
 
+    // Kiểm tra trạng thái của các cảm biến analog
     for(uint8_t i = 0; i < ANALOG_SENSOR_COUNT; i++) {
         if(g_analog_sensors[i].sensor_active) {
-            // Chuyển đổi giá trị ADC sang điện áp
-            float voltage = (g_analog_sensors[i].raw_value * ADC_VREF) / ADC_RESOLUTION;
-            
-            // Áp dụng hệ số cân chỉnh
-            voltage = voltage * g_analog_sensors[i].calibration_gain + 
-                     g_analog_sensors[i].calibration_offset;
-
-            // Cập nhật giá trị và thời gian
-            g_analog_sensors[i].voltage = voltage;
+            // Kiểm tra theo thứ tự ưu tiên từ cao đến thấp
+            if(g_analog_sensors[i].sensor_status == SENSOR_STATUS_CRITICAL) {
+                system_status = SAFETY_MONITOR_CRITICAL;
+                g_safety_system.system_status = SAFETY_MONITOR_CRITICAL;
+                break; // Thoát ngay khi phát hiện lỗi nghiêm trọng
+            }
+            else if(g_analog_sensors[i].sensor_status == SENSOR_STATUS_WARNING && 
+                    g_safety_system.system_status != SAFETY_MONITOR_CRITICAL) {
+                system_status = SAFETY_MONITOR_WARNING;
+                g_safety_system.system_status = SAFETY_MONITOR_WARNING;
+            }
+            else if(g_analog_sensors[i].sensor_status == SENSOR_STATUS_ERROR && 
+                    g_safety_system.system_status < SAFETY_MONITOR_CRITICAL) {
+                system_status = SAFETY_MONITOR_ERROR;
+                g_safety_system.system_status = SAFETY_MONITOR_ERROR;
+            }
         }
     }
 
-    // Xử lý cảm biến digital
+    // Kiểm tra trạng thái của các cảm biến digital 
     for(uint8_t i = 0; i < DIGITAL_SENSOR_COUNT; i++) {
         if(g_digital_sensors[i].sensor_active) {
-            uint8_t current_value = g_digital_sensors[i].sensor_value;
-            
-            // Phát hiện thay đổi trạng thái
-            if(current_value != g_digital_sensors[i].previous_state) {
-                // Kiểm tra chống dội
-                if((current_time - g_digital_sensors[i].last_edge_time) > 
-                   g_digital_sensors[i].debounce_time_ms) {
-                    g_digital_sensors[i].state_change_count++;
-                    g_digital_sensors[i].last_edge_time = current_time;
-                }
+            if(g_digital_sensors[i].sensor_status == SENSOR_STATUS_CRITICAL) {
+                system_status = SAFETY_MONITOR_CRITICAL;
+                g_safety_system.system_status = SAFETY_MONITOR_CRITICAL;
+                break;
             }
-            
-            g_digital_sensors[i].previous_state = current_value;
-
+            else if(g_digital_sensors[i].sensor_status == SENSOR_STATUS_WARNING && 
+                    g_safety_system.system_status != SAFETY_MONITOR_CRITICAL) {
+                system_status = SAFETY_MONITOR_WARNING;  
+                g_safety_system.system_status = SAFETY_MONITOR_WARNING;  
+            }
+            else if(g_digital_sensors[i].sensor_status == SENSOR_STATUS_ERROR && 
+                    g_safety_system.system_status < SAFETY_MONITOR_CRITICAL) {
+                system_status = SAFETY_MONITOR_ERROR;
+                g_safety_system.system_status = SAFETY_MONITOR_ERROR;
+            }
         }
     }
+
+    // Cập nhật trạng thái hệ thống
+    g_safety_system.last_safety_check = current_time;
+
+    // Cập nhật bộ đếm cảnh báo
+    if(system_status == SAFETY_MONITOR_WARNING) {
+        g_safety_system.warning_count++;
+    }
+    else if(system_status == SAFETY_MONITOR_CRITICAL) {
+        g_safety_system.critical_count++;
+    }
+    else if(system_status == SAFETY_MONITOR_EMERGENCY) {
+        g_safety_system.emergency_count++;
+    }
     
-    return SAFETY_MONITOR_OK;
+    if(system_status == SAFETY_MONITOR_CRITICAL) { 
+        HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);
+    }
+    else if(system_status == SAFETY_MONITOR_OK) {
+        HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_RESET);
+    }
+    g_safety_system.system_status = system_status;
+
+    return system_status;
 }
 
 // Đọc cấu hình từ Modbus registers
 HAL_StatusTypeDef Safety_Register_Load(void){
     // Đọc cấu hình cho cảm biến analog
     for(uint8_t i = 0; i < ANALOG_SENSOR_COUNT; i++) {
-        g_analog_sensors[i].sensor_active = Modbus_Get_Register(REG_ANALOG_1_ENABLE + i);
+        g_analog_sensors[i].sensor_active = g_holdingRegisters[REG_ANALOG_1_ENABLE + i];
         g_analog_sensors[i].calibration_gain = 
-            (float)Modbus_Get_Register(REG_ANALOG_COEFFICIENT) / 1000.0f;
+            (float)g_holdingRegisters[REG_ANALOG_COEFFICIENT];
         g_analog_sensors[i].calibration_offset = 
-            (float)Modbus_Get_Register(REG_ANALOG_CALIBRATION) / OFFSET_SCALE_FACTOR;
+            (float)g_holdingRegisters[REG_ANALOG_CALIBRATION];
     }
     
     // Đọc cấu hình cho cảm biến digital
-    for(uint8_t i = 0; i < MAX_DIGITAL_SENSORS; i++) {
-        g_digital_sensors[i].sensor_active = Modbus_Get_Register(REG_DI1_ENABLE + i);
-        g_digital_sensors[i].debounce_time_ms = Modbus_Get_Register(REG_DI1_DEBOUNCE + i);
+    for(uint8_t i = 0; i < DIGITAL_SENSOR_COUNT; i++) {
+        g_digital_sensors[i].sensor_active = g_holdingRegisters[REG_DI1_ENABLE + i];
+        g_digital_sensors[i].active_level = g_holdingRegisters[REG_DI1_ACTIVE_LEVEL + i];
+        g_digital_sensors[i].debounce_time_ms = DEFAULT_SAFETY_RESPONSE_TIME;
     }
     
     return HAL_OK;
 }
 
 // Lưu dữ liệu vào Modbus registers
-HAL_StatusTypeDef Safety_Register_Save(void){
-    // MODIFICATION LOG
-    // Date: 2025-01-14
-    // Changed by: AI Agent  
-    // Description: Modified to save only processed analog sensor values
-    // Reason: User requirement - only save converted sensor values, not raw voltages
-    // Impact: Modbus registers contain calibrated and processed sensor data
-    // Testing: Verify processed values are correctly scaled and stored
-    
-    // Lưu dữ liệu cảm biến analog (chỉ giá trị đã chuyển đổi và hiệu chuẩn)
-    for(uint8_t i = 0; i < MAX_ANALOG_SENSORS; i++) {
-        // Lưu giá trị cảm biến đã được xử lý, áp dụng hiệu chuẩn và chuyển đổi đơn vị
-        // Giá trị này đã bao gồm: ADC -> voltage -> calibration (gain + offset)
-        // Chuyển đổi từ float (volts) sang uint16_t (millivolts) cho Modbus
-        uint16_t processed_value = (uint16_t)(g_analog_sensors[i].voltage * VOLTAGE_SCALE_FACTOR);
+HAL_StatusTypeDef Safety_Register_Save(void) {
+
+    // Lưu dữ liệu cảm biến analog
+    for(uint8_t i = 0; i < ANALOG_SENSOR_COUNT; i++) {
+        // Lưu giá trị điện áp đã được xử lý (mV)
+        g_holdingRegisters[REG_ANALOG_INPUT_1 + i] = 
+            (uint16_t)(g_analog_sensors[i].filtered_value);
         
-        Modbus_Set_Register(REG_ANALOG_INPUT_1 + i, processed_value);
-        Modbus_Set_Register(REG_ANALOG_1_ENABLE + i, g_analog_sensors[i].sensor_active);
-        
-        // Lưu giá trị ADC thô để debug (tùy chọn)
-        Modbus_Set_Register(REG_ANALOG_INPUT_1_RAW + i, g_analog_sensors[i].raw_value);
-        
-        // Lưu trạng thái sensor và error count
-        Modbus_Set_Register(REG_ANALOG_1_ERROR + i, g_analog_sensors[i].error_count);
+        // Lưu trạng thái kích hoạt của cảm biến
+        g_holdingRegisters[REG_ANALOG_1_ENABLE + i] = 
+            g_analog_sensors[i].sensor_active;
+        // g_holdingRegisters[REG_ANALOG_COEFFICIENT + i] = 
+        //     (uint16_t)(g_analog_sensors[i].calibration_gain);
+        // g_holdingRegisters[REG_ANALOG_CALIBRATION + i] = 
+        //     (uint16_t)(g_analog_sensors[i].calibration_offset);
     }
     
-    // Lưu dữ liệu cảm biến digital
-    for(uint8_t i = 0; i < MAX_DIGITAL_SENSORS; i++) {
-        Modbus_Set_Register(REG_DI1_STATUS + i, g_digital_sensors[i].sensor_value);
-        Modbus_Set_Register(REG_DI1_ENABLE + i, g_digital_sensors[i].sensor_active);
-        Modbus_Set_Register(REG_DI1_CHANGES + i, g_digital_sensors[i].state_change_count);
-        Modbus_Set_Register(REG_DI1_ERROR + i, g_digital_sensors[i].error_count);
+    // Lưu dữ liệu cảm biến digital 
+    for(uint8_t i = 0; i < DIGITAL_SENSOR_COUNT; i++) {
+        // Lưu trạng thái và cấu hình của cảm biến digital
+        g_holdingRegisters[REG_DI1_STATUS + i] = 
+            g_digital_sensors[i].sensor_state;
+        g_holdingRegisters[REG_DI1_ENABLE + i] = 
+            g_digital_sensors[i].sensor_active;
     }
-    
+    g_holdingRegisters[REG_SAFETY_SYSTEM_STATUS] = g_safety_system.system_status;
     return HAL_OK;
 }
 
-float Safety_Get_Analog_Voltage(uint8_t sensor_id){
-    if(sensor_id >= ANALOG_SENSOR_COUNT) {
-        return 0;
-    }
-    return g_analog_sensors[sensor_id].voltage;
-}
-
-/**
- * @brief Get processed analog sensor value (after calibration)
- * @param sensor_id: Sensor ID (0-3)
- * @return uint16_t Processed sensor value (scaled for Modbus)
- * @note Trả về giá trị cảm biến đã được xử lý và hiệu chuẩn
- */
-uint16_t Safety_Get_Analog_Value(uint8_t sensor_id){
-    if(sensor_id >= ANALOG_SENSOR_COUNT) {
-        return 0;
-    }
-    
-    // Trả về giá trị đã được xử lý (voltage * scale factor)
-    // Đây là giá trị cuối cùng được lưu vào Modbus register
-    return (uint16_t)(g_analog_sensors[sensor_id].voltage * VOLTAGE_SCALE_FACTOR);
-}
 
 uint8_t Safety_Get_Digital_State(uint8_t sensor_id){
-    if(sensor_id >= DIGITAL_SENSOR_COUNT) {
+    
+    switch (sensor_id)
+    {
+    case 0:
+        g_digital_sensors[0].sensor_value = HAL_GPIO_ReadPin(DI1_GPIO_Port, DI1_Pin);
+        return g_digital_sensors[0].sensor_value;
+        break;
+    case 1:
+        g_digital_sensors[1].sensor_value = HAL_GPIO_ReadPin(DI2_GPIO_Port, DI2_Pin);
+        return g_digital_sensors[1].sensor_value;
+        break;
+    case 2:
+        g_digital_sensors[2].sensor_value = HAL_GPIO_ReadPin(DI3_GPIO_Port, DI3_Pin);
+        return g_digital_sensors[2].sensor_value;
+        break;
+    case 3:
+        g_digital_sensors[3].sensor_value = HAL_GPIO_ReadPin(DI4_GPIO_Port, DI4_Pin);
+        return g_digital_sensors[3].sensor_value;
+        break;
+    default:
         return 0;
     }
-    return g_digital_sensors[sensor_id].sensor_value;
 }
 
 Safety_Monitor_Status_t Safety_Get_System_Status(void){
@@ -224,93 +247,14 @@ Safety_Monitor_Status_t Safety_Get_System_Status(void){
  * @return uint16_t Raw ADC value (0-4095)
  * @note Đọc giá trị cảm biến analog từ ADC với xử lý lỗi toàn diện
  */
-uint16_t Safety_Read_Analog_Sensor(uint8_t sensor_id)
-{
-    uint16_t adc_value = 0;
-    uint32_t channel = 0;
-    HAL_StatusTypeDef status = HAL_ERROR;
-    uint32_t timeout_start = 0;
-    
-    // Kiểm tra tính hợp lệ của sensor_id
-    if (sensor_id >= ANALOG_SENSOR_COUNT) {
-        g_analog_sensors[0].error_count++;  // Log error to first sensor if invalid ID
-        return 0;
-    }
-    
-    // Kiểm tra trạng thái hoạt động của sensor
-    if (!g_analog_sensors[sensor_id].sensor_active) {
-        return g_analog_sensors[sensor_id].raw_value;  // Return last known value
-    }
-    
-    // Map sensor_id to ADC channel
-    switch (sensor_id) {
-        case 0: channel = ADC_CHANNEL_0; break;  // PA0 - Analog Input 1
-        case 1: channel = ADC_CHANNEL_1; break;  // PA1 - Analog Input 2  
-        case 2: channel = ADC_CHANNEL_4; break;  // PA4 - Analog Input 3
-        case 3: channel = ADC_CHANNEL_8; break;  // PB0 - Analog Input 4
-        default:
-            g_analog_sensors[sensor_id].error_count++;
-            return 0;
-    }
-    
-    // Configure ADC channel
-    ADC_ChannelConfTypeDef sConfig = {0};
-    sConfig.Channel = channel;
-    sConfig.Rank = ADC_REGULAR_RANK_1;
-    sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;  // Longer sampling for better accuracy
-    
-    status = HAL_ADC_ConfigChannel(&hadc1, &sConfig);
-    if (status != HAL_OK) {
-        g_analog_sensors[sensor_id].error_count++;
-        return g_analog_sensors[sensor_id].raw_value;  // Return last known value
-    }
-    
-    // Start ADC conversion
-    timeout_start = HAL_GetTick();
-    status = HAL_ADC_Start(&hadc1);
-    if (status != HAL_OK) {
-        g_analog_sensors[sensor_id].error_count++;
-        return g_analog_sensors[sensor_id].raw_value;
-    }
-    
-    // Wait for conversion complete with timeout
-    status = HAL_ADC_PollForConversion(&hadc1, 100);  // 100ms timeout
-    if (status == HAL_OK) {
-        // Get ADC value
-        adc_value = HAL_ADC_GetValue(&hadc1);
-        
-        // Apply simple digital filter (moving average)
-        if (g_analog_sensors[sensor_id].raw_value == 0) {
-            // First reading - no filtering
-            g_analog_sensors[sensor_id].filtered_value = (float)adc_value;
-        } else {
-            // Apply low-pass filter: filtered = 0.8 * old + 0.2 * new
-            g_analog_sensors[sensor_id].filtered_value = 
-                0.8f * g_analog_sensors[sensor_id].filtered_value + 0.2f * (float)adc_value;
-        }
-        
-        // Update raw value
-        g_analog_sensors[sensor_id].raw_value = adc_value;
-        
-        // Update min/max statistics
-        float voltage = (adc_value * ADC_VREF) / ADC_RESOLUTION;
-        if (g_analog_sensors[sensor_id].min_recorded == 0.0f || voltage < g_analog_sensors[sensor_id].min_recorded) {
-            g_analog_sensors[sensor_id].min_recorded = voltage;
-        }
-        if (voltage > g_analog_sensors[sensor_id].max_recorded) {
-            g_analog_sensors[sensor_id].max_recorded = voltage;
-        }
-        
-    } else {
-        // Timeout or error occurred
-        g_analog_sensors[sensor_id].error_count++;
-        adc_value = g_analog_sensors[sensor_id].raw_value;  // Return last known value
-    }
-    
-    // Stop ADC
-    HAL_ADC_Stop(&hadc1);
-    
-    return adc_value;
+
+float Safety_Convert_To_Distance(uint8_t sensor_id){
+    float distance, voltage;
+    voltage = adc_buffer[sensor_id] * 3.3f / 4095.0f;
+    if(voltage < 0.1f) return 0;
+
+    distance = g_analog_sensors[sensor_id].calibration_gain/100.0f * powf(voltage, (g_analog_sensors[sensor_id].calibration_offset)/(-100.0f));
+    return distance;
 }
 
 /**
@@ -322,44 +266,45 @@ HAL_StatusTypeDef Safety_Process_Analog_Sensors(void)
 {
     HAL_StatusTypeDef overall_status = HAL_OK;
     uint32_t current_time = HAL_GetTick();
+    uint16_t distance;
+    uint8_t i;
     
     // Process each analog sensor
-    for (uint8_t i = 0; i < ANALOG_SENSOR_COUNT; i++) {
+    for (i = 0; i < ANALOG_SENSOR_COUNT; i++) {
         if (g_analog_sensors[i].sensor_active) {
             // Read sensor value
-            uint16_t raw_value = Safety_Read_Analog_Sensor(i);
+            distance = Safety_Convert_To_Distance(i);
             
-            // Convert to voltage with calibration
-            float voltage = (raw_value * ADC_VREF) / ADC_RESOLUTION;
-            voltage = voltage * g_analog_sensors[i].calibration_gain + 
-                     g_analog_sensors[i].calibration_offset;
-            
-            // Update sensor data
-            g_analog_sensors[i].voltage = voltage;
-            
-            // Check thresholds and set status flags
-            g_analog_sensors[i].sensor_status = SENSOR_STATUS_OK;
-            g_analog_sensors[i].alarm_flags = 0;
-            
-            // Check critical thresholds first
-            if (voltage <= g_analog_sensors[i].critical_low || 
-                voltage >= g_analog_sensors[i].critical_high) {
-                g_analog_sensors[i].sensor_status |= SENSOR_STATUS_CRITICAL;
-                g_analog_sensors[i].alarm_flags |= 0x04;  // Critical alarm
-                overall_status = HAL_ERROR;
+            // Kiểm tra các ngưỡng khoảng cách cho từng cảm biến
+            if(distance == 0) {
+                // Cảm biến không hoạt động hoặc lỗi
+                g_analog_sensors[i].sensor_status = SENSOR_STATUS_ERROR;
+                g_analog_sensors[i].alarm_flags = 0x01;
             }
-            // Check warning thresholds  
-            else if (voltage <= g_analog_sensors[i].warning_low || 
-                     voltage >= g_analog_sensors[i].warning_high) {
-                g_analog_sensors[i].sensor_status |= SENSOR_STATUS_WARNING;
-                g_analog_sensors[i].alarm_flags |= 0x02;  // Warning alarm
+            else if(distance <= g_holdingRegisters[REG_SAFETY_ZONE1_THRESHOLD]) {
+                // Vùng nguy hiểm 1 - Nguy hiểm cao nhất
+                g_analog_sensors[i].sensor_status = SENSOR_STATUS_CRITICAL;
+                g_analog_sensors[i].alarm_flags = 0x08;
             }
-            
-            // Check for sensor errors (invalid readings)
-            if (raw_value == 0 || raw_value >= 4095) {
-                g_analog_sensors[i].sensor_status |= SENSOR_STATUS_ERROR;
-                g_analog_sensors[i].alarm_flags |= 0x08;  // Error alarm
-                overall_status = HAL_ERROR;
+            else if(distance <= g_holdingRegisters[REG_SAFETY_ZONE2_THRESHOLD]) {
+                // Vùng nguy hiểm 2 - Cảnh báo cao
+                g_analog_sensors[i].sensor_status = SENSOR_STATUS_WARNING;
+                g_analog_sensors[i].alarm_flags = 0x04;
+            }
+            else if(distance <= g_holdingRegisters[REG_SAFETY_ZONE3_THRESHOLD]) {
+                // Vùng nguy hiểm 3 - Cảnh báo trung bình
+                g_analog_sensors[i].sensor_status = SENSOR_STATUS_WARNING;
+                g_analog_sensors[i].alarm_flags = 0x02;
+            }
+            else if(distance <= g_holdingRegisters[REG_SAFETY_ZONE4_THRESHOLD]) {
+                // Vùng nguy hiểm 4 - Cảnh báo thấp
+                g_analog_sensors[i].sensor_status = SENSOR_STATUS_OK;
+                g_analog_sensors[i].alarm_flags = 0x01;
+            }
+            else {
+                // Khoảng cách an toàn
+                g_analog_sensors[i].sensor_status = SENSOR_STATUS_OK;
+                g_analog_sensors[i].alarm_flags = 0;
             }
         }
     }
@@ -367,15 +312,29 @@ HAL_StatusTypeDef Safety_Process_Analog_Sensors(void)
     return overall_status;
 }
 
-HAL_StatusTypeDef Safety_Set_Analog_Calibration(uint8_t sensor_id, float offset, float gain){
-
+HAL_StatusTypeDef Safety_Process_Digital_Sensors(void){
+    HAL_StatusTypeDef overall_status = HAL_OK;
+    uint32_t current_time = HAL_GetTick();
+    uint8_t i;
+    
+    for (i = 0; i < DIGITAL_SENSOR_COUNT; i++) {
+        if (g_digital_sensors[i].sensor_active) {
+            // Read sensor value
+            g_digital_sensors[i].sensor_value = Safety_Get_Digital_State(i);
+            if(g_digital_sensors[i].sensor_value == g_digital_sensors[i].active_level) {
+                g_digital_sensors[i].sensor_status = SENSOR_STATUS_CRITICAL;
+                g_digital_sensors[i].sensor_state = 1;
+                g_digital_sensors[i].alarm_flags = 0x08;
+            }
+            else {
+                g_digital_sensors[i].sensor_status = SENSOR_STATUS_OK;
+                g_digital_sensors[i].sensor_state = 0;
+                g_digital_sensors[i].alarm_flags = 0;
+            }
+        }
+    }
+    
+    return overall_status;
 }
 
-HAL_StatusTypeDef Safety_Set_Analog_Enable(uint8_t sensor_id, uint8_t enable){
-
-}
-
-HAL_StatusTypeDef Safety_Set_Digital_Enable(uint8_t sensor_id, uint8_t enable){
-
-}
 

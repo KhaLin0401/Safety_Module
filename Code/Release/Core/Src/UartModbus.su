@@ -1,0 +1,6 @@
+../Core/Src/UartModbus.c:32:6:initializeModbusRegisters	0	static
+../Core/Src/UartModbus.c:85:10:calcCRC	16	static
+../Core/Src/UartModbus.c:133:6:HAL_UART_ErrorCallback	8	static
+../Core/Src/UartModbus.c:142:6:resetUARTCommunication	8	static
+../Core/Src/UartModbus.c:149:6:processModbusFrame	280	static
+../Core/Src/UartModbus.c:101:6:HAL_UART_RxCpltCallback	16	static

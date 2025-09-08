@@ -33,10 +33,10 @@
 #define REG_ANALOG_INPUT_4         0x0013  // Analog Input 4 - Final processed value (millivolts)
 #define REG_ANALOG_COEFFICIENT     0x0014
 #define REG_ANALOG_CALIBRATION     0x0015
-#define REG_ANALOG_INPUT_1_RAW     0x0016  // Analog Input 1 - Raw ADC value (0-4095)
-#define REG_ANALOG_INPUT_2_RAW     0x0017  // Analog Input 2 - Raw ADC value (0-4095)
-#define REG_ANALOG_INPUT_3_RAW     0x0018  // Analog Input 3 - Raw ADC value (0-4095)
-#define REG_ANALOG_INPUT_4_RAW     0x0019  // Analog Input 4 - Raw ADC value (0-4095)
+// #define REG_ANALOG_INPUT_1_RAW     0x0016  // Analog Input 1 - Raw ADC value (0-4095)
+// #define REG_ANALOG_INPUT_2_RAW     0x0017  // Analog Input 2 - Raw ADC value (0-4095)
+// #define REG_ANALOG_INPUT_3_RAW     0x0018  // Analog Input 3 - Raw ADC value (0-4095)
+// #define REG_ANALOG_INPUT_4_RAW     0x0019  // Analog Input 4 - Raw ADC value (0-4095)
 #define REG_ANALOG_1_ENABLE        0x001A
 #define REG_ANALOG_2_ENABLE        0x001B
 #define REG_ANALOG_3_ENABLE        0x001C
@@ -56,22 +56,26 @@
 #define REG_DI2_ENABLE             0x0027
 #define REG_DI3_ENABLE             0x0028
 #define REG_DI4_ENABLE             0x0029
+#define REG_DI1_ACTIVE_LEVEL       0x002A
+#define REG_DI2_ACTIVE_LEVEL       0x002B
+#define REG_DI3_ACTIVE_LEVEL       0x002C
+#define REG_DI4_ACTIVE_LEVEL       0x002D
 
 // Relay Output Control Registers  
-#define REG_RELAY1_CONTROL         0x002A
-#define REG_RELAY2_CONTROL         0x002B
-#define REG_RELAY3_CONTROL         0x002C
-#define REG_RELAY4_CONTROL         0x002D
+#define REG_RELAY1_CONTROL         0x0040  // Control Relay Output 1
+#define REG_RELAY2_CONTROL         0x0041  // Control Relay Output 2
+#define REG_RELAY3_CONTROL         0x0042  // Control Relay Output 3
+#define REG_RELAY4_CONTROL         0x0043  // Control Relay Output 4
 
 // Safety Configuration Registers
-#define REG_SAFETY_ZONE1_THRESHOLD 0x002E
-#define REG_SAFETY_ZONE2_THRESHOLD 0x002F
-#define REG_SAFETY_ZONE3_THRESHOLD 0x0030
-#define REG_SAFETY_ZONE4_THRESHOLD 0x0031
-#define REG_PROXIMITY_THRESHOLD    0x0032
-#define REG_SAFETY_RESPONSE_TIME   0x0033
-#define REG_AUTO_RESET_ENABLE      0x0034
-#define REG_SAFETY_MODE            0x0035
+#define REG_SAFETY_ZONE1_THRESHOLD 0x0044  // Safety Zone 1 threshold
+#define REG_SAFETY_ZONE2_THRESHOLD 0x0045  // Safety Zone 2 threshold
+#define REG_SAFETY_ZONE3_THRESHOLD 0x0046  // Safety Zone 3 threshold
+#define REG_SAFETY_ZONE4_THRESHOLD 0x0047  // Safety Zone 4 threshold
+#define REG_PROXIMITY_THRESHOLD    0x0048  // Proximity sensor threshold
+#define REG_SAFETY_RESPONSE_TIME   0x0049  // Safety response time (ms)
+#define REG_AUTO_RESET_ENABLE      0x004A  // Enable auto reset (0=Off, 1=On)
+#define REG_SAFETY_MODE            0x004B  // Safety mode (1=Normal, 2=Warning, 3=Protective Stop, 4=Emergency Stop)
 
 // Total register count  
 #define TOTAL_HOLDING_REG_COUNT    0x0036  // Total number of registers (0x0000-0x0035)
@@ -98,8 +102,8 @@
 #define DEFAULT_ANALOG_INPUT_2_RAW  0       // Giá trị raw mặc định cho AI2
 #define DEFAULT_ANALOG_INPUT_3_RAW  0       // Giá trị raw mặc định cho AI3
 #define DEFAULT_ANALOG_INPUT_4_RAW  0  
-#define DEFAULT_ANALOG_COEFFICIENT  20      // Giá trị hệ số mặc định cho AI
-#define DEFAULT_ANALOG_CALIBRATION  15       // Giá trị điều chỉnh mặc định cho AI
+#define DEFAULT_ANALOG_COEFFICIENT  2786      // Giá trị hệ số mặc định cho AI
+#define DEFAULT_ANALOG_CALIBRATION  115       // Giá trị điều chỉnh mặc định cho AI
 #define DEFAULT_ANALOG_1_ENABLE     0
 #define DEFAULT_ANALOG_2_ENABLE     0
 #define DEFAULT_ANALOG_3_ENABLE     0

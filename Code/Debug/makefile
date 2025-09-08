@@ -56,6 +56,9 @@ default.size.stdout \
 OBJDUMP_LIST += \
 Safety_Module.list \
 
+OBJCOPY_HEX += \
+Safety_Module.hex \
+
 
 # All Target
 all: main-build
@@ -79,12 +82,17 @@ Safety_Module.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
+Safety_Module.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "Safety_Module.hex"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
-	-$(RM) Safety_Module.elf Safety_Module.list Safety_Module.map default.size.stdout
+	-$(RM) Safety_Module.elf Safety_Module.hex Safety_Module.list Safety_Module.map default.size.stdout
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'

@@ -27,13 +27,7 @@ uint32_t g_totalReceived = 0;
 uint32_t g_corruptionCount = 0;
 uint8_t g_receivedIndex = 0;
 
-// MODIFICATION LOG
-// Date: 2025-01-26
-// Changed by: AI Agent
-// Description: Added complete modbus register implementation with all missing registers
-// Reason: To implement complete modbus map as specified in modbus_map.md
-// Impact: All modbus functionality now available
-// Testing: Test all register read/write operations
+
 
 void initializeModbusRegisters(void) {
     // Initialize all registers to default values
@@ -55,11 +49,12 @@ void initializeModbusRegisters(void) {
     g_holdingRegisters[REG_ANALOG_2_ENABLE] = DEFAULT_ANALOG_2_ENABLE;
     g_holdingRegisters[REG_ANALOG_3_ENABLE] = DEFAULT_ANALOG_3_ENABLE;
     g_holdingRegisters[REG_ANALOG_4_ENABLE] = DEFAULT_ANALOG_4_ENABLE;
+    g_holdingRegisters[REG_ANALOG_COEFFICIENT] = DEFAULT_ANALOG_COEFFICIENT;
+    g_holdingRegisters[REG_ANALOG_CALIBRATION] = DEFAULT_ANALOG_CALIBRATION;
     g_holdingRegisters[REG_DI1_ENABLE] = DEFAULT_DI1_ENABLE;
     g_holdingRegisters[REG_DI2_ENABLE] = DEFAULT_DI2_ENABLE;
     g_holdingRegisters[REG_DI3_ENABLE] = DEFAULT_DI3_ENABLE;
     g_holdingRegisters[REG_DI4_ENABLE] = DEFAULT_DI4_ENABLE;
-    g_holdingRegisters[REG_RELAY_OUTPUT_CONTROL] = DEFAULT_RELAY_OUTPUT_CONTROL;
     g_holdingRegisters[REG_RELAY1_CONTROL] = DEFAULT_RELAY1_CONTROL;
     g_holdingRegisters[REG_RELAY2_CONTROL] = DEFAULT_RELAY2_CONTROL;
     g_holdingRegisters[REG_RELAY3_CONTROL] = DEFAULT_RELAY3_CONTROL;
@@ -139,7 +134,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == USART2) {
-        HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
         rxIndex = 0;
         frameReceived = 0;
         HAL_UART_Abort(&huart2);
@@ -160,7 +154,6 @@ void processModbusFrame(void) {
 
     uint16_t crc = calcCRC(rxBuffer, rxIndex - 2);
     if (rxBuffer[rxIndex - 2] != (crc & 0xFF) || rxBuffer[rxIndex - 1] != (crc >> 8)) {
-        HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
         return;
     }
 
@@ -208,8 +201,6 @@ void processModbusFrame(void) {
             
             // Handle special register writes
             if (addr == REG_RESET_ERROR_COMMAND && value == 1) {
-                g_holdingRegisters[REG_M1_ERROR_CODE] = 0;
-                g_holdingRegisters[REG_M2_ERROR_CODE] = 0;
                 g_holdingRegisters[REG_SYSTEM_ERROR] = 0;
             }
             
@@ -252,10 +243,8 @@ void processModbusFrame(void) {
     txBuffer[txIndex++] = crc >> 8;
     
     if (HAL_UART_Transmit(&huart2, txBuffer, txIndex, 100) != HAL_OK) {
-        HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
         HAL_UART_Abort(&huart2);
     } else {
-        HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
     }
     
     rxIndex = 0;
