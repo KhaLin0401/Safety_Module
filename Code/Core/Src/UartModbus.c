@@ -244,6 +244,7 @@ void processModbusFrame(void) {
     
     if (HAL_UART_Transmit(&huart2, txBuffer, txIndex, 100) != HAL_OK) {
         HAL_UART_Abort(&huart2);
+
     } else {
     }
     

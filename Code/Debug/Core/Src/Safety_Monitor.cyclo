@@ -1,9 +1,9 @@
 ../Core/Src/Safety_Monitor.c:28:19:Safety_Monitor_Init	3
-../Core/Src/Safety_Monitor.c:87:25:Safety_Monitor_Process	20
-../Core/Src/Safety_Monitor.c:164:19:Safety_Register_Load	3
-../Core/Src/Safety_Monitor.c:185:19:Safety_Register_Save	3
-../Core/Src/Safety_Monitor.c:215:9:Safety_Get_Digital_State	5
-../Core/Src/Safety_Monitor.c:240:25:Safety_Get_System_Status	1
-../Core/Src/Safety_Monitor.c:251:7:Safety_Convert_To_Distance	2
-../Core/Src/Safety_Monitor.c:265:19:Safety_Process_Analog_Sensors	8
-../Core/Src/Safety_Monitor.c:315:19:Safety_Process_Digital_Sensors	4
+../Core/Src/Safety_Monitor.c:87:25:Safety_Monitor_Process	21
+../Core/Src/Safety_Monitor.c:168:19:Safety_Register_Load	3
+../Core/Src/Safety_Monitor.c:190:19:Safety_Register_Save	3
+../Core/Src/Safety_Monitor.c:220:9:Safety_Get_Digital_State	5
+../Core/Src/Safety_Monitor.c:245:25:Safety_Get_System_Status	1
+../Core/Src/Safety_Monitor.c:256:7:Safety_Convert_To_Distance	2
+../Core/Src/Safety_Monitor.c:271:19:Safety_Process_Analog_Sensors	8
+../Core/Src/Safety_Monitor.c:321:19:Safety_Process_Digital_Sensors	4

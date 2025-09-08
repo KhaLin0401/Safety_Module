@@ -462,7 +462,7 @@ void StartModbusTask(void *argument)
     if (frameReceived) {
       processModbusFrame();
     }
-    
+    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
     osDelay(100); // 100ms delay
   }
   /* USER CODE END StartModbusTask */

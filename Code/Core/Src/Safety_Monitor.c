@@ -28,23 +28,6 @@ uint16_t adc_buffer[4];
 HAL_StatusTypeDef Safety_Monitor_Init(void){
     // Khởi tạo giá trị mặc định cho cảm biến analog
     HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer, 4);
-
-    // g_holdingRegisters[REG_DEVICE_ID] = DEFAULT_DEVICE_ID;
-    // g_holdingRegisters[REG_CONFIG_BAUDRATE] = DEFAULT_CONFIG_BAUDRATE;
-    // g_holdingRegisters[REG_CONFIG_PARITY] = DEFAULT_CONFIG_PARITY;
-    // g_holdingRegisters[REG_CONFIG_STOP_BIT] = DEFAULT_CONFIG_STOP_BIT;
-    // g_holdingRegisters[REG_MODULE_TYPE] = DEFAULT_MODULE_TYPE;
-    // g_holdingRegisters[REG_FIRMWARE_VERSION] = DEFAULT_FIRMWARE_VERSION;
-    // g_holdingRegisters[REG_HARDWARE_VERSION] = DEFAULT_HARDWARE_VERSION;
-    // g_holdingRegisters[REG_SYSTEM_STATUS] = DEFAULT_SYSTEM_STATUS;
-    // g_holdingRegisters[REG_SYSTEM_ERROR] = DEFAULT_SYSTEM_ERROR;
-    // g_holdingRegisters[REG_RESET_ERROR_COMMAND] = DEFAULT_RESET_ERROR_COMMAND;
-
-    // g_analog_sensors[0].raw_value = DEFAULT_ANALOG_INPUT_1;
-    // g_analog_sensors[1].raw_value = DEFAULT_ANALOG_INPUT_2; 
-    // g_analog_sensors[2].raw_value = DEFAULT_ANALOG_INPUT_3;
-    // g_analog_sensors[3].raw_value = DEFAULT_ANALOG_INPUT_4;
-    
     // Khởi tạo trạng thái hoạt động cho cảm biến analog
     g_analog_sensors[0].sensor_active = DEFAULT_ANALOG_1_ENABLE;
     g_analog_sensors[1].sensor_active = DEFAULT_ANALOG_2_ENABLE;
@@ -151,9 +134,13 @@ Safety_Monitor_Status_t Safety_Monitor_Process(void){
     
     if(system_status == SAFETY_MONITOR_CRITICAL) { 
         HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+        g_holdingRegisters[REG_RESET_FLAG] = 1;
     }
-    else if(system_status == SAFETY_MONITOR_OK) {
+    else if(system_status == SAFETY_MONITOR_OK 
+        && g_holdingRegisters[REG_RESET_FLAG] == 0) {
         HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
     }
     g_safety_system.system_status = system_status;
 
@@ -179,6 +166,7 @@ HAL_StatusTypeDef Safety_Register_Load(void){
     }
     
     return HAL_OK;
+
 }
 
 // Lưu dữ liệu vào Modbus registers
@@ -193,10 +181,6 @@ HAL_StatusTypeDef Safety_Register_Save(void) {
         // Lưu trạng thái kích hoạt của cảm biến
         g_holdingRegisters[REG_ANALOG_1_ENABLE + i] = 
             g_analog_sensors[i].sensor_active;
-        // g_holdingRegisters[REG_ANALOG_COEFFICIENT + i] = 
-        //     (uint16_t)(g_analog_sensors[i].calibration_gain);
-        // g_holdingRegisters[REG_ANALOG_CALIBRATION + i] = 
-        //     (uint16_t)(g_analog_sensors[i].calibration_offset);
     }
     
     // Lưu dữ liệu cảm biến digital 
@@ -254,6 +238,7 @@ float Safety_Convert_To_Distance(uint8_t sensor_id){
     if(voltage < 0.1f) return 0;
 
     distance = g_analog_sensors[sensor_id].calibration_gain/100.0f * powf(voltage, (g_analog_sensors[sensor_id].calibration_offset)/(-100.0f));
+    g_analog_sensors[sensor_id].filtered_value = distance;
     return distance;
 }
 
