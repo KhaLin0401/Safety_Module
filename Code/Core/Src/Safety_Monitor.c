@@ -22,12 +22,18 @@ Safety_System_Data_t g_safety_system;
 Analog_Sensor_t g_analog_sensors[ANALOG_SENSOR_COUNT];
 Digital_Sensor_t g_digital_sensors[DIGITAL_SENSOR_COUNT];
 
-uint16_t adc_buffer[4];
+volatile uint16_t adc_buffer[4];
 
 // Khởi tạo các giá trị mặc định cho các cảm biến
 HAL_StatusTypeDef Safety_Monitor_Init(void){
-    // Khởi tạo giá trị mặc định cho cảm biến analog
-    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer, 4);
+    // Hiệu chuẩn ADC trước khi bắt đầu DMA để đảm bảo độ chính xác
+    if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) {
+        return HAL_ERROR;
+    }
+    // Bắt đầu chuyển đổi ADC ở chế độ quét 4 kênh với DMA vòng
+    if (HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_buffer, 4) != HAL_OK) {
+        return HAL_ERROR;
+    }
     // Khởi tạo trạng thái hoạt động cho cảm biến analog
     g_analog_sensors[0].sensor_active = DEFAULT_ANALOG_1_ENABLE;
     g_analog_sensors[1].sensor_active = DEFAULT_ANALOG_2_ENABLE;
@@ -190,7 +196,12 @@ HAL_StatusTypeDef Safety_Register_Save(void) {
         g_holdingRegisters[REG_DI1_ENABLE + i] = 
             g_digital_sensors[i].sensor_active;
     }
-    g_holdingRegisters[REG_SAFETY_SYSTEM_STATUS] = g_safety_system.system_status;
+    if(g_holdingRegisters[REG_RESET_FLAG] == 1) {
+        g_holdingRegisters[REG_SAFETY_SYSTEM_STATUS] = SAFETY_MONITOR_CRITICAL;
+    }
+    else {
+        g_holdingRegisters[REG_SAFETY_SYSTEM_STATUS] = g_safety_system.system_status;
+    }
     g_holdingRegisters[REG_CONFIG_BAUDRATE] = current_baudrate;
     return HAL_OK;
 }
