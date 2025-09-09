@@ -4,3 +4,4 @@
 ../Core/Src/UartModbus.c:135:6:HAL_UART_ErrorCallback	2
 ../Core/Src/UartModbus.c:144:6:resetUARTCommunication	1
 ../Core/Src/UartModbus.c:151:6:processModbusFrame	20
+../Core/Src/UartModbus.c:255:6:updateBaudrate	7

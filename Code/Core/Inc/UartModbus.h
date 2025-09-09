@@ -22,6 +22,7 @@ extern uint16_t g_holdingRegisters[HOLDING_REG_COUNT];
 extern uint16_t g_inputRegisters[INPUT_REG_COUNT];
 extern uint8_t g_coils[COIL_COUNT];
 extern uint8_t g_discreteInputs[DISCRETE_COUNT];
+extern uint8_t current_baudrate;
 
 // Task counters
 extern uint32_t g_taskCounter;
@@ -49,5 +50,6 @@ void initializeModbusRegisters(void);
 void updateSystemStatus(void);
 void updateMotorStatus(void);
 void updateDigitalIOStatus(void);
+void updateBaudrate(void);
 
 #endif

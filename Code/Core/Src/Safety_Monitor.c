@@ -164,7 +164,6 @@ HAL_StatusTypeDef Safety_Register_Load(void){
         g_digital_sensors[i].active_level = g_holdingRegisters[REG_DI1_ACTIVE_LEVEL + i];
         g_digital_sensors[i].debounce_time_ms = DEFAULT_SAFETY_RESPONSE_TIME;
     }
-    
     return HAL_OK;
 
 }
@@ -192,6 +191,7 @@ HAL_StatusTypeDef Safety_Register_Save(void) {
             g_digital_sensors[i].sensor_active;
     }
     g_holdingRegisters[REG_SAFETY_SYSTEM_STATUS] = g_safety_system.system_status;
+    g_holdingRegisters[REG_CONFIG_BAUDRATE] = current_baudrate;
     return HAL_OK;
 }
 

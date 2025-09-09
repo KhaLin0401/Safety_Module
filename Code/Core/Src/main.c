@@ -51,6 +51,8 @@ TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart2;
 
+uint8_t current_baudrate = DEFAULT_CONFIG_BAUDRATE;
+
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
@@ -429,6 +431,7 @@ void StartDefaultTask(void *argument)
   for(;;)
   { 
     Safety_Register_Load();
+    updateBaudrate();
     Safety_Monitor_Process();
     Safety_Register_Save();
     osDelay(1);
