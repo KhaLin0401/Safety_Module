@@ -82,44 +82,60 @@ Safety_Monitor_Status_t Safety_Monitor_Process(void){
     Safety_Process_Digital_Sensors();
 
     // Kiểm tra trạng thái của các cảm biến analog
-    for(uint8_t i = 0; i < ANALOG_SENSOR_COUNT; i++) {
-        if(g_analog_sensors[i].sensor_active) {
+    for (uint8_t i = 0; i < ANALOG_SENSOR_COUNT; i++)
+    {
+        if (g_analog_sensors[i].sensor_active)
+        {
             // Kiểm tra theo thứ tự ưu tiên từ cao đến thấp
-            if(g_analog_sensors[i].sensor_status == SENSOR_STATUS_CRITICAL) {
-                system_status = SAFETY_MONITOR_CRITICAL;
-                g_safety_system.system_status = SAFETY_MONITOR_CRITICAL;
-                break; // Thoát ngay khi phát hiện lỗi nghiêm trọng
-            }
-            else if(g_analog_sensors[i].sensor_status == SENSOR_STATUS_WARNING && 
-                    g_safety_system.system_status != SAFETY_MONITOR_CRITICAL) {
-                system_status = SAFETY_MONITOR_WARNING;
-                g_safety_system.system_status = SAFETY_MONITOR_WARNING;
-            }
-            else if(g_analog_sensors[i].sensor_status == SENSOR_STATUS_ERROR && 
-                    g_safety_system.system_status < SAFETY_MONITOR_CRITICAL) {
-                system_status = SAFETY_MONITOR_ERROR;
-                g_safety_system.system_status = SAFETY_MONITOR_ERROR;
+            if (g_holdingRegisters[REG_RESET_FLAG] == 0)
+            {
+                if (g_analog_sensors[i].sensor_status == SENSOR_STATUS_CRITICAL)
+                {
+                    system_status = SAFETY_MONITOR_CRITICAL;
+                    g_safety_system.system_status = SAFETY_MONITOR_CRITICAL;
+                    break; // Thoát ngay khi phát hiện lỗi nghiêm trọng
+                }
+                else if (g_analog_sensors[i].sensor_status == SENSOR_STATUS_WARNING &&
+                         g_safety_system.system_status != SAFETY_MONITOR_CRITICAL)
+                {
+                    system_status = SAFETY_MONITOR_WARNING;
+                    g_safety_system.system_status = SAFETY_MONITOR_WARNING;
+                }
+                else if (g_analog_sensors[i].sensor_status == SENSOR_STATUS_ERROR &&
+                         g_safety_system.system_status < SAFETY_MONITOR_CRITICAL)
+                {
+                    system_status = SAFETY_MONITOR_ERROR;
+                    g_safety_system.system_status = SAFETY_MONITOR_ERROR;
+                }
             }
         }
     }
 
-    // Kiểm tra trạng thái của các cảm biến digital 
-    for(uint8_t i = 0; i < DIGITAL_SENSOR_COUNT; i++) {
-        if(g_digital_sensors[i].sensor_active) {
-            if(g_digital_sensors[i].sensor_status == SENSOR_STATUS_CRITICAL) {
-                system_status = SAFETY_MONITOR_CRITICAL;
-                g_safety_system.system_status = SAFETY_MONITOR_CRITICAL;
-                break;
-            }
-            else if(g_digital_sensors[i].sensor_status == SENSOR_STATUS_WARNING && 
-                    g_safety_system.system_status != SAFETY_MONITOR_CRITICAL) {
-                system_status = SAFETY_MONITOR_WARNING;  
-                g_safety_system.system_status = SAFETY_MONITOR_WARNING;  
-            }
-            else if(g_digital_sensors[i].sensor_status == SENSOR_STATUS_ERROR && 
-                    g_safety_system.system_status < SAFETY_MONITOR_CRITICAL) {
-                system_status = SAFETY_MONITOR_ERROR;
-                g_safety_system.system_status = SAFETY_MONITOR_ERROR;
+    // Kiểm tra trạng thái của các cảm biến digital
+    for (uint8_t i = 0; i < DIGITAL_SENSOR_COUNT; i++)
+    {
+        if (g_digital_sensors[i].sensor_active)
+        {
+            if (g_holdingRegisters[REG_RESET_FLAG] == 0)
+            {
+                if (g_digital_sensors[i].sensor_status == SENSOR_STATUS_CRITICAL)
+                {
+                    system_status = SAFETY_MONITOR_CRITICAL;
+                    g_safety_system.system_status = SAFETY_MONITOR_CRITICAL;
+                    break;
+                }
+                else if (g_digital_sensors[i].sensor_status == SENSOR_STATUS_WARNING &&
+                         g_safety_system.system_status != SAFETY_MONITOR_CRITICAL)
+                {
+                    system_status = SAFETY_MONITOR_WARNING;
+                    g_safety_system.system_status = SAFETY_MONITOR_WARNING;
+                }
+                else if (g_digital_sensors[i].sensor_status == SENSOR_STATUS_ERROR &&
+                         g_safety_system.system_status < SAFETY_MONITOR_CRITICAL)
+                {
+                    system_status = SAFETY_MONITOR_ERROR;
+                    g_safety_system.system_status = SAFETY_MONITOR_ERROR;
+                }
             }
         }
     }
@@ -134,22 +150,33 @@ Safety_Monitor_Status_t Safety_Monitor_Process(void){
     else if(system_status == SAFETY_MONITOR_CRITICAL) {
         g_safety_system.critical_count++;
     }
-    else if(system_status == SAFETY_MONITOR_EMERGENCY) {
-        g_safety_system.emergency_count++;
-    }
+    // else if(system_status == SAFETY_MONITOR_EMERGENCY) {
+    //     g_safety_system.emergency_count++;
     
-    if(system_status == SAFETY_MONITOR_CRITICAL) { 
-        HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
-        g_holdingRegisters[REG_RESET_FLAG] = 1;
+    
+    // Chỉ cập nhật trạng thái hệ thống nếu chưa có lỗi nghiêm trọng hoặc đã được reset
+    if(g_holdingRegisters[REG_RESET_FLAG] == 0) {
+        if(system_status == SAFETY_MONITOR_CRITICAL) {
+            HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+            g_holdingRegisters[REG_RESET_FLAG] = 1;
+            g_safety_system.system_status = SAFETY_MONITOR_CRITICAL;
+            return SAFETY_MONITOR_CRITICAL;
+        }
+        else if(system_status == SAFETY_MONITOR_ERROR) {
+            HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET); 
+            g_holdingRegisters[REG_RESET_FLAG] = 1;
+            g_safety_system.system_status = SAFETY_MONITOR_ERROR;
+            return SAFETY_MONITOR_ERROR;
+        }
+        else if(system_status == SAFETY_MONITOR_OK) {
+            HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+            g_safety_system.system_status = SAFETY_MONITOR_OK;
+            return SAFETY_MONITOR_OK;
+        }
     }
-    else if(system_status == SAFETY_MONITOR_OK 
-        && g_holdingRegisters[REG_RESET_FLAG] == 0) {
-        HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
-    }
-    g_safety_system.system_status = system_status;
-
     return system_status;
 }
 
@@ -196,12 +223,13 @@ HAL_StatusTypeDef Safety_Register_Save(void) {
         g_holdingRegisters[REG_DI1_ENABLE + i] = 
             g_digital_sensors[i].sensor_active;
     }
-    if(g_holdingRegisters[REG_RESET_FLAG] == 1) {
-        g_holdingRegisters[REG_SAFETY_SYSTEM_STATUS] = SAFETY_MONITOR_CRITICAL;
-    }
-    else {
-        g_holdingRegisters[REG_SAFETY_SYSTEM_STATUS] = g_safety_system.system_status;
-    }
+    // if(g_holdingRegisters[REG_RESET_FLAG] == 1) {
+    //     g_holdingRegisters[REG_SAFETY_SYSTEM_STATUS] = SAFETY_MONITOR_CRITICAL;
+    // }
+    // else {
+    //     g_holdingRegisters[REG_SAFETY_SYSTEM_STATUS] = g_safety_system.system_status;
+    // }
+    g_holdingRegisters[REG_SAFETY_SYSTEM_STATUS] = g_safety_system.system_status;
     g_holdingRegisters[REG_CONFIG_BAUDRATE] = current_baudrate;
     return HAL_OK;
 }
@@ -272,7 +300,7 @@ HAL_StatusTypeDef Safety_Process_Analog_Sensors(void)
             distance = Safety_Convert_To_Distance(i);
             
             // Kiểm tra các ngưỡng khoảng cách cho từng cảm biến
-            if(distance == 0) {
+            if(distance < 10 || distance > 95) {
                 // Cảm biến không hoạt động hoặc lỗi
                 g_analog_sensors[i].sensor_status = SENSOR_STATUS_ERROR;
                 g_analog_sensors[i].alarm_flags = 0x01;

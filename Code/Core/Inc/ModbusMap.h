@@ -134,22 +134,6 @@
 #define DEFAULT_DI3_STATUS          0        // Trạng thái mặc định DI3
 #define DEFAULT_DI4_STATUS          0        // Trạng thái mặc định DI4
 
-// Giá trị mặc định cho các thanh ghi Relay Output
-#define DEFAULT_RELAY1_CONTROL       0       // Điều khiển mặc định relay 1
-#define DEFAULT_RELAY2_CONTROL       0       // Điều khiển mặc định relay 2
-#define DEFAULT_RELAY3_CONTROL       0       // Điều khiển mặc định relay 3
-#define DEFAULT_RELAY4_CONTROL       0       // Điều khiển mặc định relay 4
-
-// Giá trị mặc định cho các thanh ghi cấu hình an toàn
-#define DEFAULT_SAFETY_ZONE1_THRESHOLD  500    // Ngưỡng mặc định vùng an toàn 1
-#define DEFAULT_SAFETY_ZONE2_THRESHOLD  1000   // Ngưỡng mặc định vùng an toàn 2
-#define DEFAULT_SAFETY_ZONE3_THRESHOLD  1500   // Ngưỡng mặc định vùng an toàn 3
-#define DEFAULT_SAFETY_ZONE4_THRESHOLD  2000   // Ngưỡng mặc định vùng an toàn 4
-#define DEFAULT_PROXIMITY_THRESHOLD     100    // Ngưỡng mặc định cảm biến tiệm cận
-#define DEFAULT_SAFETY_RESPONSE_TIME    50     // Thời gian phản hồi mặc định (ms)
-#define DEFAULT_AUTO_RESET_ENABLE       0      // Tắt tự động reset
-#define DEFAULT_SAFETY_MODE             1      // Chế độ an toàn mặc định
-
 // Các giá trị trạng thái an toàn
 #define SAFETY_MODE_NORMAL          1    // Chế độ hoạt động bình thường
 #define SAFETY_MODE_WARNING         2    // Chế độ cảnh báo

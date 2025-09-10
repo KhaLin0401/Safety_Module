@@ -26,8 +26,7 @@ typedef enum
     SAFETY_MONITOR_OK = 0,          // All systems normal
     SAFETY_MONITOR_WARNING = 1,     // Warning condition detected
     SAFETY_MONITOR_CRITICAL = 2,    // Critical condition - action required
-    SAFETY_MONITOR_EMERGENCY = 3,   // Emergency stop condition
-    SAFETY_MONITOR_ERROR = 4        // System error
+    SAFETY_MONITOR_ERROR = 3      // System error
 } Safety_Monitor_Status_t;
 
 /* Analog sensor configuration and data */
