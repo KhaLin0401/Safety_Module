@@ -20,8 +20,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "UartModbus.h"
-#include "Safety_Monitor.h"
-#include "Output_Control.h"
+#include "ModbusMap.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -50,8 +49,6 @@ DMA_HandleTypeDef hdma_adc1;
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart2;
-
-uint8_t current_baudrate = DEFAULT_CONFIG_BAUDRATE;
 
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -245,12 +242,12 @@ static void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 4;
+  hadc1.Init.NbrOfConversion = 1;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -258,26 +255,16 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
-
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
 
-  sConfig.Channel = ADC_CHANNEL_1;
-  sConfig.Rank = ADC_REGULAR_RANK_2;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
-
-  sConfig.Channel = ADC_CHANNEL_4;
-  sConfig.Rank = ADC_REGULAR_RANK_3;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
-
-  sConfig.Channel = ADC_CHANNEL_8;
-  sConfig.Rank = ADC_REGULAR_RANK_4;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
- /* USER CODE BEGIN ADC1_Init 2 */
-
- /* USER CODE END ADC1_Init 2 */
+  /* USER CODE END ADC1_Init 2 */
 
 }
 
@@ -388,15 +375,26 @@ static void MX_GPIO_Init(void)
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LED1_Pin|LED2_Pin|RELAY2_Pin|RELAY1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, LED4_Pin|LED3_Pin|LED2_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : LED1_Pin LED2_Pin RELAY2_Pin RELAY1_Pin */
-  GPIO_InitStruct.Pin = LED1_Pin|LED2_Pin|RELAY2_Pin|RELAY1_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, LED1_Pin|LED2B11_Pin|RELAY2_Pin|RELAY1_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : LED4_Pin LED3_Pin LED2_Pin */
+  GPIO_InitStruct.Pin = LED4_Pin|LED3_Pin|LED2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : LED1_Pin LED2B11_Pin RELAY2_Pin RELAY1_Pin */
+  GPIO_InitStruct.Pin = LED1_Pin|LED2B11_Pin|RELAY2_Pin|RELAY1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -448,27 +446,33 @@ void StartDefaultTask(void *argument)
 /* USER CODE END Header_StartModbusTask */
 void StartModbusTask(void *argument)
 {
-  /* USER CODE BEGIN StartModbusTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    // Update Modbus counter
-    g_modbusCounter++;
-    
-    // Check for UART timeout (10 seconds)
-    if (HAL_GetTick() - g_lastUARTActivity > 10000) {
-      resetUARTCommunication();
-      g_lastUARTActivity = HAL_GetTick();
-    }
-    
-    // Process Modbus frame if received
-    if (frameReceived) {
-      processModbusFrame();
-    }
-    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-    osDelay(100); // 100ms delay
-  }
-  /* USER CODE END StartModbusTask */
+	for(;;) {
+	    g_modbusCounter++;
+
+	    // Kiểm tra timeout khung (khoảng 3.5 char time ~ vài ms)
+	    if (rxIndex > 0 && (HAL_GetTick() - g_lastUARTActivity > 5)) {
+	        // Giả sử kết thúc frame
+	        frameReceived = 1;
+	    }
+
+	    // Nếu nhận được frame
+	    if (frameReceived) {
+	        processModbusFrame();
+
+	        // Reset buffer sau khi xử lý
+	        rxIndex = 0;
+	        frameReceived = 0;
+	        HAL_UART_Receive_IT(&huart2, &rxBuffer[rxIndex], 1);
+	    }
+
+	    // Kiểm tra timeout dài (ví dụ 10s) để reset toàn bộ UART
+	    if (HAL_GetTick() - g_lastUARTActivity > 10000) {
+	        resetUARTCommunication();
+	        g_lastUARTActivity = HAL_GetTick();
+	    }
+
+	    osDelay(1); // giảm delay để Modbus responsive hơn
+	  }
 }
 
 /**

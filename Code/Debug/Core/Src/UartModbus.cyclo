@@ -1,7 +1,8 @@
-../Core/Src/UartModbus.c:32:6:initializeModbusRegisters	4
-../Core/Src/UartModbus.c:87:10:calcCRC	4
-../Core/Src/UartModbus.c:103:6:HAL_UART_RxCpltCallback	10
-../Core/Src/UartModbus.c:135:6:HAL_UART_ErrorCallback	2
+../Core/Src/UartModbus.c:33:6:initializeModbusRegisters	4
+../Core/Src/UartModbus.c:89:13:MX_USART2_UART_Init	2
+../Core/Src/UartModbus.c:103:10:calcCRC	4
+../Core/Src/UartModbus.c:119:6:HAL_UART_RxCpltCallback	2
+../Core/Src/UartModbus.c:134:6:HAL_UART_ErrorCallback	2
 ../Core/Src/UartModbus.c:144:6:resetUARTCommunication	1
-../Core/Src/UartModbus.c:151:6:processModbusFrame	20
-../Core/Src/UartModbus.c:255:6:updateBaudrate	7
+../Core/Src/UartModbus.c:151:6:processModbusFrame	18
+../Core/Src/UartModbus.c:257:6:updateBaudrate	7

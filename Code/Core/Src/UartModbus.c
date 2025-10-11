@@ -15,6 +15,7 @@ uint8_t g_discreteInputs[DISCRETE_COUNT];
 // Task counters
 uint32_t g_taskCounter = 0;
 uint32_t g_modbusCounter = 0;
+uint8_t current_baudrate = 5;
 
 // UART buffer variables
 uint8_t rxBuffer[RX_BUFFER_SIZE];
@@ -84,6 +85,21 @@ void initializeModbusRegisters(void) {
 }
 
 
+
+static void MX_USART2_UART_Init(void) {
+    huart2.Instance = USART2;
+    huart2.Init.BaudRate = 115200;
+    huart2.Init.WordLength = UART_WORDLENGTH_8B;
+    huart2.Init.StopBits = UART_STOPBITS_1;
+    huart2.Init.Parity = UART_PARITY_NONE;
+    huart2.Init.Mode = UART_MODE_TX_RX;
+    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+    if (HAL_UART_Init(&huart2) != HAL_OK) {
+        Error_Handler();
+    }
+}
+
 uint16_t calcCRC(uint8_t *buf, int len) {
     uint16_t crc = 0xFFFF;
     for (int pos = 0; pos < len; pos++) {
@@ -104,36 +120,20 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == USART2) {
         g_lastUARTActivity = HAL_GetTick();
         
-        if (rxIndex < RX_BUFFER_SIZE - 1) {
-            rxBuffer[rxIndex++] = huart->Instance->DR;
-            frameReceived = 1;
-            
-            if (rxIndex >= 6) {
-                uint8_t expectedLength = 0;
-                if (rxBuffer[1] == 3 || rxBuffer[1] == 6) {
-                    expectedLength = 8;
-                } else if (rxBuffer[1] == 4) {
-                    expectedLength = 8;
-                } else if (rxBuffer[1] == 16) {
-                    if (rxIndex >= 7) {
-                        expectedLength = 9 + rxBuffer[6];
-                    }
-                }
-                
-                if (rxIndex >= expectedLength) {
-                    processModbusFrame();
-                }
-            }
+        if (rxIndex < RX_BUFFER_SIZE) {
+            rxIndex++;
         } else {
-            rxIndex = 0;
-            frameReceived = 0;
+            rxIndex = 0; // buffer overflow reset
         }
+        
+        // Luôn enable nhận tiếp byte
         HAL_UART_Receive_IT(&huart2, &rxBuffer[rxIndex], 1);
     }
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
     if (huart->Instance == USART2) {
+        HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
         rxIndex = 0;
         frameReceived = 0;
         HAL_UART_Abort(&huart2);
@@ -154,6 +154,7 @@ void processModbusFrame(void) {
 
     uint16_t crc = calcCRC(rxBuffer, rxIndex - 2);
     if (rxBuffer[rxIndex - 2] != (crc & 0xFF) || rxBuffer[rxIndex - 1] != (crc >> 8)) {
+        HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
         return;
     }
 
@@ -201,7 +202,7 @@ void processModbusFrame(void) {
             
             // Handle special register writes
             if (addr == REG_RESET_ERROR_COMMAND && value == 1) {
-                g_holdingRegisters[REG_SYSTEM_ERROR] = 0;
+
             }
             
             txBuffer[2] = rxBuffer[2];
@@ -243,9 +244,10 @@ void processModbusFrame(void) {
     txBuffer[txIndex++] = crc >> 8;
     
     if (HAL_UART_Transmit(&huart2, txBuffer, txIndex, 100) != HAL_OK) {
+        HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
         HAL_UART_Abort(&huart2);
-
     } else {
+        HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
     }
     
     rxIndex = 0;

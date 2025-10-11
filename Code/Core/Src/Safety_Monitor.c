@@ -150,8 +150,6 @@ Safety_Monitor_Status_t Safety_Monitor_Process(void){
     else if(system_status == SAFETY_MONITOR_CRITICAL) {
         g_safety_system.critical_count++;
     }
-    // else if(system_status == SAFETY_MONITOR_EMERGENCY) {
-    //     g_safety_system.emergency_count++;
     
     
     // Chỉ cập nhật trạng thái hệ thống nếu chưa có lỗi nghiêm trọng hoặc đã được reset
