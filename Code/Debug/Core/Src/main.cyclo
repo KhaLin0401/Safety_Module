@@ -6,5 +6,5 @@
 ../Core/Src/main.c:365:13:MX_DMA_Init	1
 ../Core/Src/main.c:383:13:MX_GPIO_Init	1
 ../Core/Src/main.c:427:6:StartDefaultTask	1
-../Core/Src/main.c:449:6:StartModbusTask	3
-../Core/Src/main.c:478:6:Error_Handler	1
+../Core/Src/main.c:449:6:StartModbusTask	5
+../Core/Src/main.c:484:6:Error_Handler	1

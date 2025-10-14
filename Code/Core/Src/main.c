@@ -448,27 +448,33 @@ void StartDefaultTask(void *argument)
 /* USER CODE END Header_StartModbusTask */
 void StartModbusTask(void *argument)
 {
-  /* USER CODE BEGIN StartModbusTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    // Update Modbus counter
+  for(;;) {
     g_modbusCounter++;
-    
-    // Check for UART timeout (10 seconds)
-    if (HAL_GetTick() - g_lastUARTActivity > 10000) {
-      resetUARTCommunication();
-      g_lastUARTActivity = HAL_GetTick();
+
+    // Kiểm tra timeout khung (khoảng 3.5 char time ~ vài ms)
+    if (rxIndex > 0 && (HAL_GetTick() - g_lastUARTActivity > 5)) {
+        // Giả sử kết thúc frame
+        frameReceived = 1;
     }
-    
-    // Process Modbus frame if received
+
+    // Nếu nhận được frame
     if (frameReceived) {
-      processModbusFrame();
+        processModbusFrame();
+
+        // Reset buffer sau khi xử lý
+        rxIndex = 0;
+        frameReceived = 0;
+        HAL_UART_Receive_IT(&huart2, &rxBuffer[rxIndex], 1);
     }
-    HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
-    osDelay(100); // 100ms delay
+
+    // Kiểm tra timeout dài (ví dụ 10s) để reset toàn bộ UART
+    if (HAL_GetTick() - g_lastUARTActivity > 10000) {
+        resetUARTCommunication();
+        g_lastUARTActivity = HAL_GetTick();
+    }
+
+    osDelay(1); // giảm delay để Modbus responsive hơn
   }
-  /* USER CODE END StartModbusTask */
 }
 
 /**
