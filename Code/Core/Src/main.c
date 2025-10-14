@@ -451,6 +451,7 @@ void StartModbusTask(void *argument)
   // Tính toán thời gian timeout dựa trên baudrate
   uint32_t charTime = (11 * 1000) / huart2.Init.BaudRate; // 11 bit per char (8N1 + start/stop)
   uint32_t frameTimeout = charTime * 4; // 3.5 char time for Modbus RTU
+  if (frameTimeout < 5) frameTimeout = 5; // Tối thiểu 5ms
   
   // Khởi tạo biến monitoring
   g_lastUARTActivity = HAL_GetTick();
@@ -459,16 +460,18 @@ void StartModbusTask(void *argument)
   for(;;) {
     g_modbusCounter++;
 
-    // Kiểm tra timeout cho frame
-    if (frameReceived && rxIndex > 0 && (HAL_GetTick() - g_lastUARTActivity > frameTimeout)) {
-        // Frame đã timeout, xử lý nếu đủ độ dài tối thiểu
-        if (rxIndex >= 8) {
-            processModbusFrame();
-        } else {
-            // Frame không đủ độ dài - bỏ qua
-            rxIndex = 0;
-            frameReceived = 0;
-        }
+    // Xử lý frame đã nhận đủ
+    if (frameReceived) {
+        processModbusFrame();
+    }
+    
+    // Kiểm tra timeout cho frame chưa hoàn chỉnh
+    // Nếu có dữ liệu trong buffer nhưng chưa đủ frame và đã timeout
+    if (!frameReceived && rxIndex > 0 && (HAL_GetTick() - g_lastUARTActivity > frameTimeout)) {
+        // Frame không hoàn chỉnh và đã timeout - bỏ qua và reset
+        rxIndex = 0;
+        frameReceived = 0;
+        g_corruptionCount++;
     }
 
     // Kiểm tra sức khỏe UART định kỳ

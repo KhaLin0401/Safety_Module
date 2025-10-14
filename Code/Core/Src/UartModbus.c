@@ -122,8 +122,34 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
             // Lưu byte vừa nhận
             rxBuffer[rxIndex++] = rxByte;
             
-            // Đánh dấu có frame received để task xử lý
-            frameReceived = 1;
+            // Kiểm tra xem có đủ frame chưa
+            if (rxIndex >= 3) {
+                uint8_t funcCode = rxBuffer[1];
+                uint8_t expectedLength = 0;
+                
+                switch(funcCode) {
+                    case 3:  // Read holding registers
+                    case 4:  // Read input registers
+                    case 6:  // Write single register
+                        expectedLength = 8;
+                        break;
+                    case 16: // Write multiple registers
+                        if (rxIndex >= 7) {
+                            expectedLength = 9 + rxBuffer[6];
+                        }
+                        break;
+                    default:
+                        // Function code không hợp lệ - reset
+                        rxIndex = 0;
+                        frameReceived = 0;
+                        break;
+                }
+                
+                // Nếu đã nhận đủ frame theo expectedLength
+                if (expectedLength > 0 && rxIndex >= expectedLength) {
+                    frameReceived = 1;
+                }
+            }
         } else {
             // Buffer overflow - reset
             rxIndex = 0;
