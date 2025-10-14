@@ -448,32 +448,34 @@ void StartDefaultTask(void *argument)
 /* USER CODE END Header_StartModbusTask */
 void StartModbusTask(void *argument)
 {
+  // Tính toán thời gian timeout dựa trên baudrate
+  uint32_t charTime = (11 * 1000) / huart2.Init.BaudRate; // 11 bit per char (8N1 + start/stop)
+  uint32_t frameTimeout = charTime * 4; // 3.5 char time for Modbus RTU
+  
+  // Khởi tạo biến monitoring
+  g_lastUARTActivity = HAL_GetTick();
+  last_health_check = g_lastUARTActivity;
+
   for(;;) {
     g_modbusCounter++;
 
-    // Kiểm tra timeout khung (khoảng 3.5 char time ~ vài ms)
-    if (rxIndex > 0 && (HAL_GetTick() - g_lastUARTActivity > 5)) {
-        // Giả sử kết thúc frame
-        frameReceived = 1;
+    // Kiểm tra timeout cho frame
+    if (frameReceived && rxIndex > 0 && (HAL_GetTick() - g_lastUARTActivity > frameTimeout)) {
+        // Frame đã timeout, xử lý nếu đủ độ dài tối thiểu
+        if (rxIndex >= 8) {
+            processModbusFrame();
+        } else {
+            // Frame không đủ độ dài - bỏ qua
+            rxIndex = 0;
+            frameReceived = 0;
+        }
     }
 
-    // Nếu nhận được frame
-    if (frameReceived) {
-        processModbusFrame();
+    // Kiểm tra sức khỏe UART định kỳ
+    checkUARTHealth();
 
-        // Reset buffer sau khi xử lý
-        rxIndex = 0;
-        frameReceived = 0;
-        HAL_UART_Receive_IT(&huart2, &rxBuffer[rxIndex], 1);
-    }
-
-    // Kiểm tra timeout dài (ví dụ 10s) để reset toàn bộ UART
-    if (HAL_GetTick() - g_lastUARTActivity > 10000) {
-        resetUARTCommunication();
-        g_lastUARTActivity = HAL_GetTick();
-    }
-
-    osDelay(1); // giảm delay để Modbus responsive hơn
+    // Delay 1ms
+    osDelay(1);
   }
 }
 

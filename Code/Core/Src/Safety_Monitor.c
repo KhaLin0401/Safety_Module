@@ -1,4 +1,5 @@
 #include "Safety_Monitor.h"
+#include <math.h>
 
 // MODIFICATION LOG
 // Date: 2025-01-14 
@@ -68,7 +69,7 @@ HAL_StatusTypeDef Safety_Monitor_Init(void){
 
 // Xử lý dữ liệu từ các cảm biến
 Safety_Monitor_Status_t Safety_Monitor_Process(void){
-    uint32_t current_time = HAL_GetTick();
+    // uint32_t current_time = HAL_GetTick();
     Safety_Monitor_Status_t system_status = SAFETY_MONITOR_OK;
 
     // Xử lý tất cả các cảm biến
@@ -119,7 +120,7 @@ Safety_Monitor_Status_t Safety_Monitor_Process(void){
     }
 
     // Cập nhật trạng thái hệ thống
-    g_safety_system.last_safety_check = current_time;
+    //g_safety_system.last_safety_check = current_time;
 
     // Cập nhật bộ đếm cảnh báo
     if(system_status == SAFETY_MONITOR_WARNING) {
@@ -250,7 +251,7 @@ float Safety_Convert_To_Distance(uint8_t sensor_id){
 HAL_StatusTypeDef Safety_Process_Analog_Sensors(void)
 {
     HAL_StatusTypeDef overall_status = HAL_OK;
-    uint32_t current_time = HAL_GetTick();
+    // uint32_t current_time = HAL_GetTick();
     uint16_t distance;
     uint8_t i;
     
@@ -299,7 +300,7 @@ HAL_StatusTypeDef Safety_Process_Analog_Sensors(void)
 
 HAL_StatusTypeDef Safety_Process_Digital_Sensors(void){
     HAL_StatusTypeDef overall_status = HAL_OK;
-    uint32_t current_time = HAL_GetTick();
+    // uint32_t current_time = HAL_GetTick();
     uint8_t i;
     
     for (i = 0; i < DIGITAL_SENSOR_COUNT; i++) {

@@ -1,7 +1,8 @@
-../Core/Src/UartModbus.c:32:6:initializeModbusRegisters	24	static
-../Core/Src/UartModbus.c:87:10:calcCRC	32	static
-../Core/Src/UartModbus.c:103:6:HAL_UART_RxCpltCallback	24	static
-../Core/Src/UartModbus.c:135:6:HAL_UART_ErrorCallback	16	static
-../Core/Src/UartModbus.c:144:6:resetUARTCommunication	8	static
-../Core/Src/UartModbus.c:151:6:processModbusFrame	304	static
-../Core/Src/UartModbus.c:255:6:updateBaudrate	8	static
+../Core/Src/UartModbus.c:43:6:initializeModbusRegisters	24	static
+../Core/Src/UartModbus.c:101:10:calcCRC	32	static
+../Core/Src/UartModbus.c:117:6:HAL_UART_RxCpltCallback	16	static
+../Core/Src/UartModbus.c:138:6:HAL_UART_ErrorCallback	16	static
+../Core/Src/UartModbus.c:147:6:resetUARTCommunication	8	static
+../Core/Src/UartModbus.c:154:6:processModbusFrame	304	static
+../Core/Src/UartModbus.c:270:6:updateBaudrate	8	static
+../Core/Src/UartModbus.c:314:6:checkUARTHealth	16	static
