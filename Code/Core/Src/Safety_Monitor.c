@@ -25,6 +25,8 @@ Digital_Sensor_t g_digital_sensors[DIGITAL_SENSOR_COUNT];
 
 uint16_t adc_buffer[4];
 
+Safety_Monitor_Status_t system_status = SAFETY_MONITOR_OK;
+
 // Khởi tạo các giá trị mặc định cho các cảm biến
 HAL_StatusTypeDef Safety_Monitor_Init(void){
     // Khởi tạo giá trị mặc định cho cảm biến analog
@@ -70,7 +72,7 @@ HAL_StatusTypeDef Safety_Monitor_Init(void){
 // Xử lý dữ liệu từ các cảm biến
 Safety_Monitor_Status_t Safety_Monitor_Process(void){
     // uint32_t current_time = HAL_GetTick();
-    Safety_Monitor_Status_t system_status = SAFETY_MONITOR_OK;
+    
 
     // Xử lý tất cả các cảm biến
     Safety_Process_Analog_Sensors();
@@ -134,14 +136,14 @@ Safety_Monitor_Status_t Safety_Monitor_Process(void){
     }
     
     if(system_status == SAFETY_MONITOR_CRITICAL) { 
-        HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+        // HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);
+        // HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
         g_holdingRegisters[REG_RESET_FLAG] = 1;
     }
     else if(system_status == SAFETY_MONITOR_OK 
         && g_holdingRegisters[REG_RESET_FLAG] == 0) {
-        HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+        // HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_RESET);
+        // HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
     }
     g_safety_system.system_status = system_status;
 

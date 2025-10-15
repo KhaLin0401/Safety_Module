@@ -21,8 +21,7 @@
 #include "cmsis_os.h"
 #include "UartModbus.h"
 #include "Safety_Monitor.h"
-#include "Output_Control.h"
-
+#include "ModbusMap.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -50,9 +49,7 @@ DMA_HandleTypeDef hdma_adc1;
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart2;
-
 uint8_t current_baudrate = DEFAULT_CONFIG_BAUDRATE;
-
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
@@ -67,6 +64,13 @@ const osThreadAttr_t modbusTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
+/* Definitions for ledTask */
+osThreadId_t ledTaskHandle;
+const osThreadAttr_t ledTask_attributes = {
+  .name = "ledTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityBelowNormal,
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -80,6 +84,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 void StartDefaultTask(void *argument);
 void StartModbusTask(void *argument);
+void StartTask03(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -153,6 +158,9 @@ int main(void)
 
   /* creation of modbusTask */
   modbusTaskHandle = osThreadNew(StartModbusTask, NULL, &modbusTask_attributes);
+
+  /* creation of ledTask */
+  ledTaskHandle = osThreadNew(StartTask03, NULL, &ledTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -232,10 +240,6 @@ void SystemClock_Config(void)
 static void MX_ADC1_Init(void)
 {
 
-  /* USER CODE BEGIN ADC1_Init 0 */
-
-  /* USER CODE END ADC1_Init 0 */
-
   ADC_ChannelConfTypeDef sConfig = {0};
 
   /* USER CODE BEGIN ADC1_Init 1 */
@@ -280,6 +284,7 @@ static void MX_ADC1_Init(void)
  /* USER CODE END ADC1_Init 2 */
 
 }
+
 
 /**
   * @brief TIM2 Initialization Function
@@ -393,10 +398,13 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LED1_Pin|LED2_Pin|RELAY2_Pin|RELAY1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LED2_Pin|LED3_Pin|LED4_Pin|RELAY2_Pin
+                          |RELAY1_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : LED1_Pin LED2_Pin RELAY2_Pin RELAY1_Pin */
-  GPIO_InitStruct.Pin = LED1_Pin|LED2_Pin|RELAY2_Pin|RELAY1_Pin;
+  /*Configure GPIO pins : LED2_Pin LED3_Pin LED4_Pin RELAY2_Pin
+                           RELAY1_Pin */
+  GPIO_InitStruct.Pin = LED2_Pin|LED3_Pin|LED4_Pin|RELAY2_Pin
+                          |RELAY1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -448,7 +456,6 @@ void StartDefaultTask(void *argument)
 /* USER CODE END Header_StartModbusTask */
 void StartModbusTask(void *argument)
 {
-  // Tính toán thời gian timeout dựa trên baudrate
   uint32_t charTime = (11 * 1000) / huart2.Init.BaudRate; // 11 bit per char (8N1 + start/stop)
   uint32_t frameTimeout = charTime * 4; // 3.5 char time for Modbus RTU
   if (frameTimeout < 5) frameTimeout = 5; // Tối thiểu 5ms
@@ -480,6 +487,39 @@ void StartModbusTask(void *argument)
     // Delay 1ms
     osDelay(1);
   }
+}
+
+/* USER CODE BEGIN Header_StartTask03 */
+/**
+* @brief Function implementing the ledTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask03 */
+void StartTask03(void *argument)
+{
+  /* USER CODE BEGIN StartTask03 */
+  /* Infinite loop */
+  for(;;)
+  {
+    HAL_GPIO_TogglePin(GPIOB, LED4_Pin);
+    if(frameReceived == 1)
+    {
+      HAL_GPIO_TogglePin(GPIOB, LED3_Pin);
+    }
+    if(system_status == SAFETY_MONITOR_CRITICAL) { 
+      HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+
+    }
+    else if(system_status == SAFETY_MONITOR_OK 
+        && g_holdingRegisters[REG_RESET_FLAG] == 0) {
+        HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+    }
+    osDelay(50);
+  }
+  /* USER CODE END StartTask03 */
 }
 
 /**

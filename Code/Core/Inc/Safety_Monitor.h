@@ -112,6 +112,7 @@ typedef struct
 extern Safety_System_Data_t g_safety_system;
 extern Analog_Sensor_t g_analog_sensors[ANALOG_SENSOR_COUNT];
 extern Digital_Sensor_t g_digital_sensors[DIGITAL_SENSOR_COUNT];
+extern Safety_Monitor_Status_t system_status;
 
 /* ========================== FUNCTION DECLARATIONS ========================== */
 

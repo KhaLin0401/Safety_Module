@@ -148,6 +148,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
                 // Nếu đã nhận đủ frame theo expectedLength
                 if (expectedLength > 0 && rxIndex >= expectedLength) {
                     frameReceived = 1;
+                    HAL_GPIO_TogglePin(GPIOB, LED3_Pin);
                 }
             }
         } else {
