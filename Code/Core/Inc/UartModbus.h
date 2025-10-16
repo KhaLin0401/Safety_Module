@@ -36,6 +36,8 @@ extern uint8_t rxIndex;
 extern uint8_t frameReceived;
 extern uint32_t g_lastUARTActivity;
 
+extern uint8_t g_ledIndicator;
+
 // Diagnostic variables
 extern uint32_t g_totalReceived;
 extern uint32_t g_corruptionCount;

@@ -28,6 +28,8 @@ uint8_t g_discreteInputs[DISCRETE_COUNT];
 uint32_t g_taskCounter = 0;
 uint32_t g_modbusCounter = 0;
 
+uint8_t g_ledIndicator = 0;
+
 // Diagnostic variables
 uint32_t g_totalReceived = 0;
 uint32_t g_corruptionCount = 0;
@@ -148,7 +150,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
                 // Nếu đã nhận đủ frame theo expectedLength
                 if (expectedLength > 0 && rxIndex >= expectedLength) {
                     frameReceived = 1;
-                    HAL_GPIO_TogglePin(GPIOB, LED3_Pin);
+                    //HAL_GPIO_TogglePin(GPIOB, LED3_Pin);
                 }
             }
         } else {
@@ -289,6 +291,9 @@ void processModbusFrame(void) {
         osMutexRelease(modbusTxMutex);
     }
     
+    g_ledIndicator = 1;
+
+
     // Reset buffer sau khi xử lý
     rxIndex = 0;
     frameReceived = 0;

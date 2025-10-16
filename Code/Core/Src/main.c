@@ -434,15 +434,18 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
+  uint32_t previousTick = osKernelGetTickCount();
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)
   { 
+    SystemRegisters_Load(&system, 0x0100);
     Safety_Register_Load();
     updateBaudrate();
     Safety_Monitor_Process();
+    SystemRegisters_Save(&system, 0x0100);
     Safety_Register_Save();
-    osDelay(1);
+    osDelayUntil(previousTick += 20);
   }
   /* USER CODE END 5 */
 }
@@ -458,6 +461,7 @@ void StartModbusTask(void *argument)
 {
   uint32_t charTime = (11 * 1000) / huart2.Init.BaudRate; // 11 bit per char (8N1 + start/stop)
   uint32_t frameTimeout = charTime * 4; // 3.5 char time for Modbus RTU
+  uint32_t previousTick = osKernelGetTickCount();
   if (frameTimeout < 5) frameTimeout = 5; // Tối thiểu 5ms
   
   // Khởi tạo biến monitoring
@@ -485,7 +489,7 @@ void StartModbusTask(void *argument)
     checkUARTHealth();
 
     // Delay 1ms
-    osDelay(1);
+    osDelayUntil(previousTick += 20);
   }
 }
 
@@ -498,12 +502,11 @@ void StartModbusTask(void *argument)
 /* USER CODE END Header_StartTask03 */
 void StartTask03(void *argument)
 {
-  /* USER CODE BEGIN StartTask03 */
-  /* Infinite loop */
+  uint32_t previousTick = osKernelGetTickCount();
   for(;;)
   {
     HAL_GPIO_TogglePin(GPIOB, LED4_Pin);
-    if(frameReceived == 1)
+    if(g_ledIndicator == 1)
     {
       HAL_GPIO_TogglePin(GPIOB, LED3_Pin);
     }
@@ -517,7 +520,7 @@ void StartTask03(void *argument)
         HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
     }
-    osDelay(50);
+    osDelayUntil(previousTick += 250);
   }
   /* USER CODE END StartTask03 */
 }
