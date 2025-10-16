@@ -509,6 +509,7 @@ void StartTask03(void *argument)
     if(g_ledIndicator == 1)
     {
       HAL_GPIO_TogglePin(GPIOB, LED3_Pin);
+      g_ledIndicator = 0;
     }
     if(system_status == SAFETY_MONITOR_CRITICAL) { 
       HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);

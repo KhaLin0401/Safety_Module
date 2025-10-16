@@ -8,4 +8,4 @@
 ../Core/Src/main.c:435:6:StartDefaultTask	1
 ../Core/Src/main.c:460:6:StartModbusTask	6
 ../Core/Src/main.c:503:6:StartTask03	5
-../Core/Src/main.c:532:6:Error_Handler	1
+../Core/Src/main.c:533:6:Error_Handler	1
