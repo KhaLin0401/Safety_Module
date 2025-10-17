@@ -172,13 +172,13 @@ HAL_StatusTypeDef Safety_Register_Load(void){
 
 }
 void SystemRegisters_Load(SystemRegisterMap_t* sys, uint16_t base_addr){
-    sys->Device_ID = g_holdingRegisters[base_addr + 0];
-    sys->Firmware_Version = g_holdingRegisters[base_addr + 1];
-    sys->System_Status = g_holdingRegisters[base_addr + 2];
-    sys->System_Error = g_holdingRegisters[base_addr + 3];
-    sys->Reset_Error_Command = g_holdingRegisters[base_addr + 4];
-    sys->Config_Baudrate = g_holdingRegisters[base_addr + 5];
-    sys->Config_Parity = g_holdingRegisters[base_addr + 6];
+    sys->Device_ID = g_holdingRegisters[base_addr + 0x00];
+    sys->Firmware_Version = g_holdingRegisters[base_addr + 0x01];
+    sys->System_Status = g_holdingRegisters[base_addr + 0x02];
+    sys->System_Error = g_holdingRegisters[base_addr + 0x03];
+    sys->Reset_Error_Command = g_holdingRegisters[base_addr + 0x04];
+    sys->Config_Baudrate = g_holdingRegisters[base_addr + 0x05];
+    sys->Config_Parity = g_holdingRegisters[base_addr + 0x06];
 }
 
 // Lưu dữ liệu vào Modbus registers

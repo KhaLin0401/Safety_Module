@@ -81,7 +81,7 @@
 #define TOTAL_HOLDING_REG_COUNT    0x0036  // Total number of registers (0x0000-0x0035)
 
 // Default Values for System Registers
-#define DEFAULT_DEVICE_ID          5
+#define DEFAULT_DEVICE_ID          6
 #define DEFAULT_CONFIG_BAUDRATE    5
 #define DEFAULT_CONFIG_PARITY      0
 #define DEFAULT_CONFIG_STOP_BIT    1

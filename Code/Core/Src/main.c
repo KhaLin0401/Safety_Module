@@ -435,15 +435,16 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   uint32_t previousTick = osKernelGetTickCount();
+  uint16_t SYS_BASE_ADDR = 0X0100;
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)
   { 
-    SystemRegisters_Load(&system, 0x0100);
+    SystemRegisters_Load(&system, SYS_BASE_ADDR);
     Safety_Register_Load();
     updateBaudrate();
     Safety_Monitor_Process();
-    SystemRegisters_Save(&system, 0x0100);
+    SystemRegisters_Save(&system, SYS_BASE_ADDR);
     Safety_Register_Save();
     osDelayUntil(previousTick += 20);
   }

@@ -183,7 +183,7 @@ void resetUARTCommunication(void) {
 
 void processModbusFrame(void) {
     if (rxIndex < 6) return;
-    if (rxBuffer[0] != MODBUS_SLAVE_ADDRESS) {
+    if (rxBuffer[0] != g_holdingRegisters[REG_DEVICE_ID]) {
         rxIndex = 0;
         frameReceived = 0;
         return;
@@ -200,7 +200,7 @@ void processModbusFrame(void) {
     uint8_t funcCode = rxBuffer[1];
     uint8_t txBuffer[256];
     uint8_t txIndex = 0;
-    txBuffer[0] = MODBUS_SLAVE_ADDRESS;
+    txBuffer[0] = g_holdingRegisters[REG_DEVICE_ID];
     txBuffer[1] = funcCode;
 
     if (funcCode == 3) {
