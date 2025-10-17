@@ -150,6 +150,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
                 // Nếu đã nhận đủ frame theo expectedLength
                 if (expectedLength > 0 && rxIndex >= expectedLength) {
                     frameReceived = 1;
+                    g_ledIndicator = 1;
                     //HAL_GPIO_TogglePin(GPIOB, LED3_Pin);
                 }
             }
@@ -291,7 +292,7 @@ void processModbusFrame(void) {
         osMutexRelease(modbusTxMutex);
     }
     
-    g_ledIndicator = 1;
+    
 
 
     // Reset buffer sau khi xử lý
