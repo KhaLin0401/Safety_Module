@@ -70,10 +70,9 @@
 
 | **Address** | **Name** | **Type** | **R/W** | **Description** | **Default** |
 |-------------|----------|----------|---------|-----------------|-------------|
-| 0x0040 | Relay1_Control | uint16 | R/W | Control Relay Output 1 | 0 |
-| 0x0041 | Relay2_Control | uint16 | R/W | Control Relay Output 2 | 0 |
-| 0x0042 | Relay3_Control | uint16 | R/W | Control Relay Output 3 | 0 |
-| 0x0043 | Relay4_Control | uint16 | R/W | Control Relay Output 4 | 0 |
+| 0x0040 | Relay1_Control | uint16 | R | Control Relay Output 1 | 0 |
+| 0x0041 | Relay2_Control | uint16 | R | Control Relay Output 2 | 0 |
+
 
 ## 🟣 Safety Configuration Registers (0x0044 - 0x004B)
 
