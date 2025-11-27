@@ -19,12 +19,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
 #include "UartModbus.h"
 #include "Safety_Monitor.h"
 #include "ModbusMap.h"
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -249,12 +249,12 @@ static void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.NbrOfConversion = 4;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -262,25 +262,25 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
 
-  sConfig.Channel = ADC_CHANNEL_0;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
-
-  sConfig.Channel = ADC_CHANNEL_1;
-  sConfig.Rank = ADC_REGULAR_RANK_2;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
-
-  sConfig.Channel = ADC_CHANNEL_4;
-  sConfig.Rank = ADC_REGULAR_RANK_3;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
-
-  sConfig.Channel = ADC_CHANNEL_8;
-  sConfig.Rank = ADC_REGULAR_RANK_4;
-  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
  /* USER CODE BEGIN ADC1_Init 2 */
+ sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
 
+ sConfig.Channel = ADC_CHANNEL_0;
+ sConfig.Rank = ADC_REGULAR_RANK_1;
+ HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+ sConfig.Channel = ADC_CHANNEL_1;
+ sConfig.Rank = ADC_REGULAR_RANK_2;
+ HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+ sConfig.Channel = ADC_CHANNEL_4;
+ sConfig.Rank = ADC_REGULAR_RANK_3;
+ HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+ sConfig.Channel = ADC_CHANNEL_8;
+ sConfig.Rank = ADC_REGULAR_RANK_4;
+ HAL_ADC_ConfigChannel(&hadc1, &sConfig);
  /* USER CODE END ADC1_Init 2 */
 
 }
@@ -460,41 +460,42 @@ void StartDefaultTask(void *argument)
 /* USER CODE END Header_StartModbusTask */
 void StartModbusTask(void *argument)
 {
-  uint32_t charTime = (11 * 1000) / huart2.Init.BaudRate; // 11 bit per char (8N1 + start/stop)
-  uint32_t frameTimeout = charTime * 4; // 3.5 char time for Modbus RTU
-  uint32_t previousTick = osKernelGetTickCount();
-  if (frameTimeout < 5) frameTimeout = 5; // Tối thiểu 5ms
+	/* USER CODE BEGIN Header_StartModbusTask */
+   uint32_t charTime = (11 * 1000) / huart2.Init.BaudRate; // 11 bit per char (8N1 + start/stop)
+   uint32_t frameTimeout = charTime * 4; // 3.5 char time for Modbus RTU
+   uint32_t previousTick = osKernelGetTickCount();
+   if (frameTimeout < 5) frameTimeout = 5; // Tối thiểu 5ms
   
-  // Khởi tạo biến monitoring
-  g_lastUARTActivity = HAL_GetTick();
-  last_health_check = g_lastUARTActivity;
+   // Khởi tạo biến monitoring
+   g_lastUARTActivity = HAL_GetTick();
+   last_health_check = g_lastUARTActivity;
 
-  for(;;) {
-    g_modbusCounter++;
+   for(;;) {
+     g_modbusCounter++;
 
-    // Xử lý frame đã nhận đủ
-    if (frameReceived) {
-        processModbusFrame();
-    }
+     // Xử lý frame đã nhận đủ
+     if (frameReceived) {
+         processModbusFrame();
+     }
     
-    // Kiểm tra timeout cho frame chưa hoàn chỉnh
-    // Nếu có dữ liệu trong buffer nhưng chưa đủ frame và đã timeout
-    if (!frameReceived && rxIndex > 0 && (HAL_GetTick() - g_lastUARTActivity > frameTimeout)) {
-        // Frame không hoàn chỉnh và đã timeout - bỏ qua và reset
-        rxIndex = 0;
-        frameReceived = 0;
-        g_corruptionCount++;
-    }
+     // Kiểm tra timeout cho frame chưa hoàn chỉnh
+     // Nếu có dữ liệu trong buffer nhưng chưa đủ frame và đã timeout
+     if (!frameReceived && rxIndex > 0 && (HAL_GetTick() - g_lastUARTActivity > frameTimeout)) {
+         // Frame không hoàn chỉnh và đã timeout - bỏ qua và reset
+         rxIndex = 0;
+         frameReceived = 0;
+         g_corruptionCount++;
+     }
 
-    // Kiểm tra sức khỏe UART định kỳ
-    checkUARTHealth();
+     // Kiểm tra sức khỏe UART định kỳ
+     checkUARTHealth();
 
-    // Delay 1ms
-    osDelayUntil(previousTick += 20);
+     // Delay 1ms
+     osDelayUntil(previousTick += 20);
   }
 }
+/* USER CODE END Header_StartModbusTask */
 
-/* USER CODE BEGIN Header_StartTask03 */
 /**
 * @brief Function implementing the ledTask thread.
 * @param argument: Not used

@@ -1,13 +1,10 @@
 #include "Safety_Monitor.h"
 #include <math.h>
 
-// MODIFICATION LOG
-// Date: 2025-01-14 
-// Changed by: AI Agent
-// Description: Added external ADC handle declaration and missing constants
-// Reason: Need access to ADC peripheral for analog sensor reading
-// Impact: Enables proper analog sensor data acquisition
-// Testing: Verify ADC reading functionality with all 4 channels
+typedef struct{
+    float voltage;   // Volt
+    float distance;  // cm
+} Sharp_LUT_t;
 
 // External ADC handle from main.c
 extern ADC_HandleTypeDef hadc1;
@@ -25,6 +22,30 @@ Analog_Sensor_t g_analog_sensors[ANALOG_SENSOR_COUNT];
 Digital_Sensor_t g_digital_sensors[DIGITAL_SENSOR_COUNT];
 
 uint16_t adc_buffer[4];
+
+// LUT cho cảm biến GP2Y0A21Y (model 1080)
+static const Sharp_LUT_t sharp1080_LUT[] = {
+    {3.00, 10},
+    {2.25, 15},
+    {1.70, 20},
+    {1.35, 25},
+    {1.15, 30},
+    {1.00, 35},
+    {0.90, 40},
+    {0.80, 45},
+    {0.72, 50},
+    {0.62, 60},
+    {0.55, 70},
+    {0.50, 80},
+};
+
+#define LUT_SIZE (sizeof(sharp1080_LUT)/sizeof(Sharp_LUT_t))
+
+static float linear_interpolate(float x, float x1, float x2, float y1, float y2)
+{
+    return y1 + (x - x1) * ((y2 - y1) / (x2 - x1));
+}
+
 
 Safety_Monitor_Status_t system_status = SAFETY_MONITOR_OK;
 
@@ -74,6 +95,8 @@ HAL_StatusTypeDef Safety_Monitor_Init(void){
 Safety_Monitor_Status_t Safety_Monitor_Process(void){
     // uint32_t current_time = HAL_GetTick();
     
+    // Tính toán trạng thái hiện tại dựa trên sensor
+    Safety_Monitor_Status_t temp_status = SAFETY_MONITOR_OK;
 
     // Xử lý tất cả các cảm biến
     Safety_Process_Analog_Sensors();
@@ -84,19 +107,16 @@ Safety_Monitor_Status_t Safety_Monitor_Process(void){
         if(g_analog_sensors[i].sensor_active) {
             // Kiểm tra theo thứ tự ưu tiên từ cao đến thấp
             if(g_analog_sensors[i].sensor_status == SENSOR_STATUS_CRITICAL) {
-                system_status = SAFETY_MONITOR_CRITICAL;
-                g_safety_system.system_status = SAFETY_MONITOR_CRITICAL;
+                temp_status = SAFETY_MONITOR_CRITICAL;
                 break; // Thoát ngay khi phát hiện lỗi nghiêm trọng
             }
             else if(g_analog_sensors[i].sensor_status == SENSOR_STATUS_WARNING && 
-                    g_safety_system.system_status != SAFETY_MONITOR_CRITICAL) {
-                system_status = SAFETY_MONITOR_WARNING;
-                g_safety_system.system_status = SAFETY_MONITOR_WARNING;
+                    temp_status < SAFETY_MONITOR_WARNING) {
+                temp_status = SAFETY_MONITOR_WARNING;
             }
             else if(g_analog_sensors[i].sensor_status == SENSOR_STATUS_ERROR && 
-                    g_safety_system.system_status < SAFETY_MONITOR_CRITICAL) {
-                system_status = SAFETY_MONITOR_ERROR;
-                g_safety_system.system_status = SAFETY_MONITOR_ERROR;
+                    temp_status < SAFETY_MONITOR_ERROR) {
+                temp_status = SAFETY_MONITOR_ERROR;
             }
         }
     }
@@ -105,48 +125,58 @@ Safety_Monitor_Status_t Safety_Monitor_Process(void){
     for(uint8_t i = 0; i < DIGITAL_SENSOR_COUNT; i++) {
         if(g_digital_sensors[i].sensor_active) {
             if(g_digital_sensors[i].sensor_status == SENSOR_STATUS_CRITICAL) {
-                system_status = SAFETY_MONITOR_CRITICAL;
-                g_safety_system.system_status = SAFETY_MONITOR_CRITICAL;
+                temp_status = SAFETY_MONITOR_CRITICAL;
                 break;
             }
             else if(g_digital_sensors[i].sensor_status == SENSOR_STATUS_WARNING && 
-                    g_safety_system.system_status != SAFETY_MONITOR_CRITICAL) {
-                system_status = SAFETY_MONITOR_WARNING;  
-                g_safety_system.system_status = SAFETY_MONITOR_WARNING;  
+                    temp_status < SAFETY_MONITOR_WARNING) {
+                temp_status = SAFETY_MONITOR_WARNING;  
             }
             else if(g_digital_sensors[i].sensor_status == SENSOR_STATUS_ERROR && 
-                    g_safety_system.system_status < SAFETY_MONITOR_CRITICAL) {
-                system_status = SAFETY_MONITOR_ERROR;
-                g_safety_system.system_status = SAFETY_MONITOR_ERROR;
+                    temp_status < SAFETY_MONITOR_ERROR) {
+                temp_status = SAFETY_MONITOR_ERROR;
             }
         }
     }
 
-    // Cập nhật trạng thái hệ thống
+    // Cập nhật trạng thái hệ thống với cơ chế LATCHING
     //g_safety_system.last_safety_check = current_time;
+    
+    /* 
+     * LOGIC LATCHING:
+     * - Khi REG_RESET_FLAG == 0: Normal mode - cập nhật system_status theo sensor
+     * - Khi REG_RESET_FLAG == 1: Locked mode - giữ nguyên CRITICAL cho đến khi reset
+     * - Sensor vẫn đọc và cập nhật giá trị liên tục bất kể ở mode nào
+     */
+    
+    if(g_holdingRegisters[REG_RESET_FLAG] == 0) {
+        // Normal mode: Cho phép cập nhật system_status từ sensor
+        system_status = temp_status;
+        g_safety_system.system_status = temp_status;
+        
+        // Nếu phát hiện CRITICAL, LOCK lại bằng cách set REG_RESET_FLAG = 1
+        if(temp_status == SAFETY_MONITOR_CRITICAL) {
+            g_holdingRegisters[REG_RESET_FLAG] = 1;
+        }
+    }
+    else {
+        // Locked mode (REG_RESET_FLAG = 1): 
+        // GIỮ NGUYÊN system_status = CRITICAL, không cập nhật từ sensor
+        // Chỉ có thể thoát khi người dùng ghi 0 vào REG_RESET_FLAG
+        system_status = SAFETY_MONITOR_CRITICAL;
+        g_safety_system.system_status = SAFETY_MONITOR_CRITICAL;
+    }
 
-    // Cập nhật bộ đếm cảnh báo
-    if(system_status == SAFETY_MONITOR_WARNING) {
+    // Cập nhật bộ đếm cảnh báo dựa trên kết quả sensor thực tế (không phải system_status)
+    if(temp_status == SAFETY_MONITOR_WARNING) {
         g_safety_system.warning_count++;
     }
-    else if(system_status == SAFETY_MONITOR_CRITICAL) {
+    else if(temp_status == SAFETY_MONITOR_CRITICAL) {
         g_safety_system.critical_count++;
     }
-    else if(system_status == SAFETY_MONITOR_EMERGENCY) {
+    else if(temp_status == SAFETY_MONITOR_EMERGENCY) {
         g_safety_system.emergency_count++;
     }
-    
-    if(system_status == SAFETY_MONITOR_CRITICAL) { 
-        // HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);
-        // HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-        g_holdingRegisters[REG_RESET_FLAG] = 1;
-    }
-    else if(system_status == SAFETY_MONITOR_OK 
-        && g_holdingRegisters[REG_RESET_FLAG] == 0) {
-        // HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_RESET);
-        // HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
-    }
-    g_safety_system.system_status = system_status;
 
     return system_status;
 }
@@ -154,8 +184,11 @@ Safety_Monitor_Status_t Safety_Monitor_Process(void){
 // Đọc cấu hình từ Modbus registers
 HAL_StatusTypeDef Safety_Register_Load(void){
     // Đọc cấu hình cho cảm biến analog
+    
     for(uint8_t i = 0; i < ANALOG_SENSOR_COUNT; i++) {
-        g_analog_sensors[i].sensor_active = g_holdingRegisters[REG_ANALOG_1_ENABLE + i];
+        if(g_holdingRegisters[REG_ANALOG_1_ENABLE + i] == 1 || g_holdingRegisters[REG_ANALOG_1_ENABLE + i] == 0) {
+            g_analog_sensors[i].sensor_active = g_holdingRegisters[REG_ANALOG_1_ENABLE + i];
+        }
         g_analog_sensors[i].calibration_gain = 
             (float)g_holdingRegisters[REG_ANALOG_COEFFICIENT];
         g_analog_sensors[i].calibration_offset = 
@@ -164,7 +197,9 @@ HAL_StatusTypeDef Safety_Register_Load(void){
     
     // Đọc cấu hình cho cảm biến digital
     for(uint8_t i = 0; i < DIGITAL_SENSOR_COUNT; i++) {
-        g_digital_sensors[i].sensor_active = g_holdingRegisters[REG_DI1_ENABLE + i];
+        if(g_holdingRegisters[REG_DI1_ENABLE + i] == 1 || g_holdingRegisters[REG_DI1_ENABLE + i] == 0) {
+            g_digital_sensors[i].sensor_active = g_holdingRegisters[REG_DI1_ENABLE + i];
+        }
         g_digital_sensors[i].active_level = g_holdingRegisters[REG_DI1_ACTIVE_LEVEL + i];
         g_digital_sensors[i].debounce_time_ms = DEFAULT_SAFETY_RESPONSE_TIME;
     }
@@ -274,37 +309,39 @@ HAL_StatusTypeDef Safety_Process_Analog_Sensors(void)
 {
     HAL_StatusTypeDef overall_status = HAL_OK;
     // uint32_t current_time = HAL_GetTick();
-    uint16_t distance;
+    float distance_cm;
     uint8_t i;
     
     // Process each analog sensor
     for (i = 0; i < ANALOG_SENSOR_COUNT; i++) {
+        distance_cm = Sharp1080_GetDistance(adc_buffer[i]);
+        g_analog_sensors[i].filtered_value = distance_cm;
         if (g_analog_sensors[i].sensor_active) {
             // Read sensor value
-            distance = Safety_Convert_To_Distance(i);
+            //distance = Safety_Convert_To_Distance(i);
             
             // Kiểm tra các ngưỡng khoảng cách cho từng cảm biến
-            if(distance == 0) {
+            if(distance_cm == 0) {
                 // Cảm biến không hoạt động hoặc lỗi
                 g_analog_sensors[i].sensor_status = SENSOR_STATUS_ERROR;
                 g_analog_sensors[i].alarm_flags = 0x01;
             }
-            else if(distance <= g_holdingRegisters[REG_SAFETY_ZONE1_THRESHOLD]) {
+            else if(distance_cm <= g_holdingRegisters[REG_SAFETY_ZONE1_THRESHOLD]) {
                 // Vùng nguy hiểm 1 - Nguy hiểm cao nhất
                 g_analog_sensors[i].sensor_status = SENSOR_STATUS_CRITICAL;
                 g_analog_sensors[i].alarm_flags = 0x08;
             }
-            else if(distance <= g_holdingRegisters[REG_SAFETY_ZONE2_THRESHOLD]) {
+            else if(distance_cm <= g_holdingRegisters[REG_SAFETY_ZONE2_THRESHOLD]) {
                 // Vùng nguy hiểm 2 - Cảnh báo cao
                 g_analog_sensors[i].sensor_status = SENSOR_STATUS_WARNING;
                 g_analog_sensors[i].alarm_flags = 0x04;
             }
-            else if(distance <= g_holdingRegisters[REG_SAFETY_ZONE3_THRESHOLD]) {
+            else if(distance_cm <= g_holdingRegisters[REG_SAFETY_ZONE3_THRESHOLD]) {
                 // Vùng nguy hiểm 3 - Cảnh báo trung bình
                 g_analog_sensors[i].sensor_status = SENSOR_STATUS_WARNING;
                 g_analog_sensors[i].alarm_flags = 0x02;
             }
-            else if(distance <= g_holdingRegisters[REG_SAFETY_ZONE4_THRESHOLD]) {
+            else if(distance_cm <= g_holdingRegisters[REG_SAFETY_ZONE4_THRESHOLD]) {
                 // Vùng nguy hiểm 4 - Cảnh báo thấp
                 g_analog_sensors[i].sensor_status = SENSOR_STATUS_OK;
                 g_analog_sensors[i].alarm_flags = 0x01;
@@ -314,6 +351,9 @@ HAL_StatusTypeDef Safety_Process_Analog_Sensors(void)
                 g_analog_sensors[i].sensor_status = SENSOR_STATUS_OK;
                 g_analog_sensors[i].alarm_flags = 0;
             }
+        } else{
+            g_analog_sensors[i].sensor_status = SENSOR_STATUS_OK;
+            g_analog_sensors[i].alarm_flags = 0;
         }
     }
     
@@ -326,9 +366,10 @@ HAL_StatusTypeDef Safety_Process_Digital_Sensors(void){
     uint8_t i;
     
     for (i = 0; i < DIGITAL_SENSOR_COUNT; i++) {
+        g_digital_sensors[i].sensor_value = Safety_Get_Digital_State(i);
         if (g_digital_sensors[i].sensor_active) {
             // Read sensor value
-            g_digital_sensors[i].sensor_value = Safety_Get_Digital_State(i);
+           
             if(g_digital_sensors[i].sensor_value == g_digital_sensors[i].active_level) {
                 g_digital_sensors[i].sensor_status = SENSOR_STATUS_CRITICAL;
                 g_digital_sensors[i].sensor_state = 1;
@@ -340,9 +381,45 @@ HAL_StatusTypeDef Safety_Process_Digital_Sensors(void){
                 g_digital_sensors[i].alarm_flags = 0;
             }
         }
+        else{
+            g_digital_sensors[i].sensor_status = SENSOR_STATUS_OK;
+            g_digital_sensors[i].sensor_state = 0;
+            g_digital_sensors[i].alarm_flags = 0;
+        }
     }
     
     return overall_status;
 }
 
+float Sharp1080_GetDistance(uint16_t adc_value)
+{
+    // STM32 ADC 12-bit → 0…4095
+    float voltage = (adc_value / 4095.0f) * 3.3f;
+
+    // Nếu ngoài dải thì trả về 0 (không hợp lệ)
+    if (voltage > sharp1080_LUT[0].voltage) {
+        return sharp1080_LUT[0].distance; // quá gần
+    }
+    if (voltage < sharp1080_LUT[LUT_SIZE-1].voltage) {
+        return sharp1080_LUT[LUT_SIZE-1].distance; // quá xa
+    }
+
+    // Tìm 2 điểm LUT bao quanh giá trị điện áp
+    for (int i = 0; i < LUT_SIZE - 1; i++)
+    {
+        if (voltage <= sharp1080_LUT[i].voltage &&
+            voltage >= sharp1080_LUT[i+1].voltage)
+        {
+            return linear_interpolate(
+                voltage,
+                sharp1080_LUT[i].voltage,
+                sharp1080_LUT[i+1].voltage,
+                sharp1080_LUT[i].distance,
+                sharp1080_LUT[i+1].distance
+            );
+        }
+    }
+
+    return 0; // fallback
+}
 
