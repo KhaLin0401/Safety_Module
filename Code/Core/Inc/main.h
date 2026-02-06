@@ -71,10 +71,12 @@ void Error_Handler(void);
 #define AI2_GPIO_Port GPIOA
 #define AI1_Pin GPIO_PIN_0
 #define AI1_GPIO_Port GPIOB
-#define LED1_Pin GPIO_PIN_10
-#define LED1_GPIO_Port GPIOB
-#define LED2B11_Pin GPIO_PIN_11
-#define LED2B11_GPIO_Port GPIOB
+#define LED2_Pin GPIO_PIN_1
+#define LED2_GPIO_Port GPIOB
+#define LED3_Pin GPIO_PIN_10
+#define LED3_GPIO_Port GPIOB
+#define LED4_Pin GPIO_PIN_11
+#define LED4_GPIO_Port GPIOB
 #define DI1_Pin GPIO_PIN_12
 #define DI1_GPIO_Port GPIOB
 #define DI2_Pin GPIO_PIN_13

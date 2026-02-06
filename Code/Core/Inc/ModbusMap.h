@@ -81,7 +81,7 @@
 #define TOTAL_HOLDING_REG_COUNT    0x0036  // Total number of registers (0x0000-0x0035)
 
 // Default Values for System Registers
-#define DEFAULT_DEVICE_ID          5
+#define DEFAULT_DEVICE_ID          6
 #define DEFAULT_CONFIG_BAUDRATE    5
 #define DEFAULT_CONFIG_PARITY      0
 #define DEFAULT_CONFIG_STOP_BIT    1
@@ -133,5 +133,11 @@
 #define DEFAULT_DI2_STATUS          0        // Trạng thái mặc định DI2
 #define DEFAULT_DI3_STATUS          0        // Trạng thái mặc định DI3
 #define DEFAULT_DI4_STATUS          0        // Trạng thái mặc định DI4
+
+// Các giá trị trạng thái an toàn
+#define SAFETY_MODE_NORMAL          1    // Chế độ hoạt động bình thường
+#define SAFETY_MODE_WARNING         2    // Chế độ cảnh báo
+#define SAFETY_MODE_PROTECTIVE_STOP 3    // Chế độ dừng bảo vệ
+#define SAFETY_MODE_EMERGENCY_STOP  4    // Chế độ dừng khẩn cấp
 
 #endif // 

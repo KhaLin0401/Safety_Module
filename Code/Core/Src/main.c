@@ -19,12 +19,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
-#include "UartModbus.h"
-#include "ModbusMap.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "UartModbus.h"
+#include "Safety_Monitor.h"
+#include "ModbusMap.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,7 +49,7 @@ DMA_HandleTypeDef hdma_adc1;
 TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart2;
-
+uint8_t current_baudrate = DEFAULT_CONFIG_BAUDRATE;
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
@@ -64,6 +64,13 @@ const osThreadAttr_t modbusTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
+/* Definitions for ledTask */
+osThreadId_t ledTaskHandle;
+const osThreadAttr_t ledTask_attributes = {
+  .name = "ledTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityBelowNormal,
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -77,6 +84,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 void StartDefaultTask(void *argument);
 void StartModbusTask(void *argument);
+void StartTask03(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -150,6 +158,9 @@ int main(void)
 
   /* creation of modbusTask */
   modbusTaskHandle = osThreadNew(StartModbusTask, NULL, &modbusTask_attributes);
+
+  /* creation of ledTask */
+  ledTaskHandle = osThreadNew(StartTask03, NULL, &ledTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -229,10 +240,6 @@ void SystemClock_Config(void)
 static void MX_ADC1_Init(void)
 {
 
-  /* USER CODE BEGIN ADC1_Init 0 */
-
-  /* USER CODE END ADC1_Init 0 */
-
   ADC_ChannelConfTypeDef sConfig = {0};
 
   /* USER CODE BEGIN ADC1_Init 1 */
@@ -242,12 +249,12 @@ static void MX_ADC1_Init(void)
   /** Common config
   */
   hadc1.Instance = ADC1;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
   hadc1.Init.ContinuousConvMode = ENABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.NbrOfConversion = 4;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
   {
     Error_Handler();
@@ -255,18 +262,29 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_0;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC1_Init 2 */
 
-  /* USER CODE END ADC1_Init 2 */
+ /* USER CODE BEGIN ADC1_Init 2 */
+ sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
+
+ sConfig.Channel = ADC_CHANNEL_0;
+ sConfig.Rank = ADC_REGULAR_RANK_1;
+ HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+ sConfig.Channel = ADC_CHANNEL_1;
+ sConfig.Rank = ADC_REGULAR_RANK_2;
+ HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+ sConfig.Channel = ADC_CHANNEL_4;
+ sConfig.Rank = ADC_REGULAR_RANK_3;
+ HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
+ sConfig.Channel = ADC_CHANNEL_8;
+ sConfig.Rank = ADC_REGULAR_RANK_4;
+ HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+ /* USER CODE END ADC1_Init 2 */
 
 }
+
 
 /**
   * @brief TIM2 Initialization Function
@@ -381,20 +399,13 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, LED4_Pin|LED3_Pin|LED2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LED2_Pin|LED3_Pin|LED4_Pin|RELAY2_Pin
+                          |RELAY1_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, LED1_Pin|LED2B11_Pin|RELAY2_Pin|RELAY1_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pins : LED4_Pin LED3_Pin LED2_Pin */
-  GPIO_InitStruct.Pin = LED4_Pin|LED3_Pin|LED2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LED1_Pin LED2B11_Pin RELAY2_Pin RELAY1_Pin */
-  GPIO_InitStruct.Pin = LED1_Pin|LED2B11_Pin|RELAY2_Pin|RELAY1_Pin;
+  /*Configure GPIO pins : LED2_Pin LED3_Pin LED4_Pin RELAY2_Pin
+                           RELAY1_Pin */
+  GPIO_InitStruct.Pin = LED2_Pin|LED3_Pin|LED4_Pin|RELAY2_Pin
+                          |RELAY1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -424,15 +435,19 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
+  uint32_t previousTick = osKernelGetTickCount();
+  uint16_t SYS_BASE_ADDR = 0X0100;
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
   for(;;)
   { 
+    SystemRegisters_Load(&system, SYS_BASE_ADDR);
     Safety_Register_Load();
     updateBaudrate();
     Safety_Monitor_Process();
+    SystemRegisters_Save(&system, SYS_BASE_ADDR);
     Safety_Register_Save();
-    osDelay(1);
+    osDelayUntil(previousTick += 20);
   }
   /* USER CODE END 5 */
 }
@@ -446,33 +461,73 @@ void StartDefaultTask(void *argument)
 /* USER CODE END Header_StartModbusTask */
 void StartModbusTask(void *argument)
 {
-	for(;;) {
-	    g_modbusCounter++;
+	/* USER CODE BEGIN Header_StartModbusTask */
+   uint32_t charTime = (11 * 1000) / huart2.Init.BaudRate; // 11 bit per char (8N1 + start/stop)
+   uint32_t frameTimeout = charTime * 4; // 3.5 char time for Modbus RTU
+   uint32_t previousTick = osKernelGetTickCount();
+   if (frameTimeout < 5) frameTimeout = 5; // Tối thiểu 5ms
+  
+   // Khởi tạo biến monitoring
+   g_lastUARTActivity = HAL_GetTick();
+   last_health_check = g_lastUARTActivity;
 
-	    // Kiểm tra timeout khung (khoảng 3.5 char time ~ vài ms)
-	    if (rxIndex > 0 && (HAL_GetTick() - g_lastUARTActivity > 5)) {
-	        // Giả sử kết thúc frame
-	        frameReceived = 1;
-	    }
+   for(;;) {
+     g_modbusCounter++;
 
-	    // Nếu nhận được frame
-	    if (frameReceived) {
-	        processModbusFrame();
+     // Xử lý frame đã nhận đủ
+     if (frameReceived) {
+         processModbusFrame();
+     }
+    
+     // Kiểm tra timeout cho frame chưa hoàn chỉnh
+     // Nếu có dữ liệu trong buffer nhưng chưa đủ frame và đã timeout
+     if (!frameReceived && rxIndex > 0 && (HAL_GetTick() - g_lastUARTActivity > frameTimeout)) {
+         // Frame không hoàn chỉnh và đã timeout - bỏ qua và reset
+         rxIndex = 0;
+         frameReceived = 0;
+         g_corruptionCount++;
+     }
 
-	        // Reset buffer sau khi xử lý
-	        rxIndex = 0;
-	        frameReceived = 0;
-	        HAL_UART_Receive_IT(&huart2, &rxBuffer[rxIndex], 1);
-	    }
+     // Kiểm tra sức khỏe UART định kỳ
+     checkUARTHealth();
 
-	    // Kiểm tra timeout dài (ví dụ 10s) để reset toàn bộ UART
-	    if (HAL_GetTick() - g_lastUARTActivity > 10000) {
-	        resetUARTCommunication();
-	        g_lastUARTActivity = HAL_GetTick();
-	    }
+     // Delay 1ms
+     osDelayUntil(previousTick += 20);
+  }
+}
+/* USER CODE END Header_StartModbusTask */
 
-	    osDelay(1); // giảm delay để Modbus responsive hơn
-	  }
+/**
+* @brief Function implementing the ledTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartTask03 */
+void StartTask03(void *argument)
+{
+  uint32_t previousTick = osKernelGetTickCount();
+  for(;;)
+  {
+    HAL_GPIO_TogglePin(GPIOB, LED4_Pin);
+    if(g_ledIndicator == 1)
+    {
+      HAL_GPIO_TogglePin(GPIOB, LED3_Pin);
+      g_ledIndicator = 0;
+    }
+    if(system_status == SAFETY_MONITOR_CRITICAL) { 
+      HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+
+    }
+    else if(system_status == SAFETY_MONITOR_OK 
+        && g_holdingRegisters[REG_RESET_FLAG] == 0) {
+        HAL_GPIO_WritePin(RELAY1_GPIO_Port, RELAY1_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+    }
+    osDelayUntil(previousTick += 250);
+  }
+  /* USER CODE END StartTask03 */
+>>>>>>> change-distance-sensor-logic
 }
 
 /**

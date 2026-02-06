@@ -106,13 +106,26 @@ typedef struct
     SemaphoreHandle_t data_mutex;
     
 } Safety_System_Data_t;
+typedef struct {
+    uint16_t Device_ID;            // 0x0000
+    uint16_t Firmware_Version;     // 0x0001
+    uint16_t System_Status;        // 0x0002
+    uint16_t System_Error;         // 0x0003
+    uint16_t Reset_Error_Command;  // 0x0004
+    uint16_t Config_Baudrate;      // 0x0005
+    uint16_t Config_Parity;        // 0x0006
+} SystemRegisterMap_t;
 
 /* ========================== GLOBAL VARIABLES ========================== */
 extern Safety_System_Data_t g_safety_system;
 extern Analog_Sensor_t g_analog_sensors[ANALOG_SENSOR_COUNT];
 extern Digital_Sensor_t g_digital_sensors[DIGITAL_SENSOR_COUNT];
 
+extern Safety_Monitor_Status_t system_status;
+extern SystemRegisterMap_t system;
 /* ========================== FUNCTION DECLARATIONS ========================== */
+
+
 
 /* ========================== CÁC HÀM CHÍNH - TỐI ƯU HÓA ========================== */
 /**
@@ -207,11 +220,20 @@ Safety_Monitor_Status_t Safety_Get_System_Status(void);
 HAL_StatusTypeDef Safety_Register_Load(void);
 
 /**
+ * @brief Tải tham số an toàn từ thanh ghi Modbus
+ * @param Không có
+ * @return HAL_StatusTypeDef
+ */
+void SystemRegisters_Load(SystemRegisterMap_t* sys, uint16_t base_addr);
+
+/**
  * @brief Lưu dữ liệu an toàn vào thanh ghi Modbus
  * @param Không có
  * @return HAL_StatusTypeDef
  */
 HAL_StatusTypeDef Safety_Register_Save(void);
+
+void SystemRegisters_Save(SystemRegisterMap_t* sys, uint16_t base_addr);
 
 /**
  * @brief Chuyển đổi giá trị cảm biến sang khoảng cách
@@ -219,5 +241,12 @@ HAL_StatusTypeDef Safety_Register_Save(void);
  * @return float Giá trị khoảng cách
  */
 float Safety_Convert_To_Distance(uint8_t sensor_id);
+
+/**
+ * @brief Tính khoảng cách từ cảm biến Sharp GP2Y0A21 dựa trên giá trị ADC
+ * @param adc_value: Giá trị ADC (0-4095)
+ * @return float Khoảng cách tính bằng cm
+ */
+float Sharp1080_GetDistance(uint16_t adc_value);
 
 #endif /* SAFETY_MONITOR_H */

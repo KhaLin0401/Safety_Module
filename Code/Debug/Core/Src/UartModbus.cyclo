@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ../Core/Src/UartModbus.c:33:6:initializeModbusRegisters	4
 ../Core/Src/UartModbus.c:89:13:MX_USART2_UART_Init	2
 ../Core/Src/UartModbus.c:103:10:calcCRC	4
@@ -6,3 +7,13 @@
 ../Core/Src/UartModbus.c:144:6:resetUARTCommunication	1
 ../Core/Src/UartModbus.c:151:6:processModbusFrame	18
 ../Core/Src/UartModbus.c:257:6:updateBaudrate	7
+=======
+../Core/Src/UartModbus.c:45:6:initializeModbusRegisters	4
+../Core/Src/UartModbus.c:103:10:calcCRC	4
+../Core/Src/UartModbus.c:119:6:HAL_UART_RxCpltCallback	12
+../Core/Src/UartModbus.c:168:6:HAL_UART_ErrorCallback	2
+../Core/Src/UartModbus.c:177:6:resetUARTCommunication	1
+../Core/Src/UartModbus.c:184:6:processModbusFrame	21
+../Core/Src/UartModbus.c:303:6:updateBaudrate	9
+../Core/Src/UartModbus.c:347:6:checkUARTHealth	3
+>>>>>>> change-distance-sensor-logic

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ../Core/Src/Safety_Monitor.c:28:19:Safety_Monitor_Init	16	static
 ../Core/Src/Safety_Monitor.c:76:25:Safety_Monitor_Process	16	static
 ../Core/Src/Safety_Monitor.c:182:19:Safety_Register_Load	24	static
@@ -7,3 +8,18 @@
 ../Core/Src/Safety_Monitor.c:272:7:Safety_Convert_To_Distance	32	static
 ../Core/Src/Safety_Monitor.c:287:19:Safety_Process_Analog_Sensors	24	static
 ../Core/Src/Safety_Monitor.c:337:19:Safety_Process_Digital_Sensors	24	static
+=======
+../Core/Src/Safety_Monitor.c:44:14:linear_interpolate	32	static
+../Core/Src/Safety_Monitor.c:53:19:Safety_Monitor_Init	16	static
+../Core/Src/Safety_Monitor.c:95:25:Safety_Monitor_Process	16	static
+../Core/Src/Safety_Monitor.c:185:19:Safety_Register_Load	24	static
+../Core/Src/Safety_Monitor.c:209:6:SystemRegisters_Load	16	static
+../Core/Src/Safety_Monitor.c:220:19:Safety_Register_Save	24	static
+../Core/Src/Safety_Monitor.c:246:6:SystemRegisters_Save	16	static
+../Core/Src/Safety_Monitor.c:257:9:Safety_Get_Digital_State	16	static
+../Core/Src/Safety_Monitor.c:282:25:Safety_Get_System_Status	4	static
+../Core/Src/Safety_Monitor.c:293:7:Safety_Convert_To_Distance	32	static
+../Core/Src/Safety_Monitor.c:308:19:Safety_Process_Analog_Sensors	16	static
+../Core/Src/Safety_Monitor.c:363:19:Safety_Process_Digital_Sensors	24	static
+../Core/Src/Safety_Monitor.c:394:7:Sharp1080_GetDistance	40	static
+>>>>>>> change-distance-sensor-logic

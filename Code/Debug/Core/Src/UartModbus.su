@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ../Core/Src/UartModbus.c:33:6:initializeModbusRegisters	24	static
 ../Core/Src/UartModbus.c:89:13:MX_USART2_UART_Init	8	static
 ../Core/Src/UartModbus.c:103:10:calcCRC	32	static
@@ -6,3 +7,13 @@
 ../Core/Src/UartModbus.c:144:6:resetUARTCommunication	8	static
 ../Core/Src/UartModbus.c:151:6:processModbusFrame	304	static
 ../Core/Src/UartModbus.c:257:6:updateBaudrate	8	static
+=======
+../Core/Src/UartModbus.c:45:6:initializeModbusRegisters	24	static
+../Core/Src/UartModbus.c:103:10:calcCRC	32	static
+../Core/Src/UartModbus.c:119:6:HAL_UART_RxCpltCallback	24	static
+../Core/Src/UartModbus.c:168:6:HAL_UART_ErrorCallback	16	static
+../Core/Src/UartModbus.c:177:6:resetUARTCommunication	8	static
+../Core/Src/UartModbus.c:184:6:processModbusFrame	304	static
+../Core/Src/UartModbus.c:303:6:updateBaudrate	8	static
+../Core/Src/UartModbus.c:347:6:checkUARTHealth	16	static
+>>>>>>> change-distance-sensor-logic

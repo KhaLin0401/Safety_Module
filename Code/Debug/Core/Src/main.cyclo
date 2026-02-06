@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ../Core/Src/main.c:94:5:main	1
 ../Core/Src/main.c:182:6:SystemClock_Config	4
 ../Core/Src/main.c:229:13:MX_ADC1_Init	3
@@ -8,3 +9,16 @@
 ../Core/Src/main.c:425:6:StartDefaultTask	1
 ../Core/Src/main.c:447:6:StartModbusTask	5
 ../Core/Src/main.c:482:6:Error_Handler	1
+=======
+../Core/Src/main.c:102:5:main	1
+../Core/Src/main.c:193:6:SystemClock_Config	4
+../Core/Src/main.c:240:13:MX_ADC1_Init	2
+../Core/Src/main.c:294:13:MX_TIM2_Init	4
+../Core/Src/main.c:339:13:MX_USART2_UART_Init	2
+../Core/Src/main.c:370:13:MX_DMA_Init	1
+../Core/Src/main.c:388:13:MX_GPIO_Init	1
+../Core/Src/main.c:435:6:StartDefaultTask	1
+../Core/Src/main.c:461:6:StartModbusTask	6
+../Core/Src/main.c:505:6:StartTask03	5
+../Core/Src/main.c:535:6:Error_Handler	1
+>>>>>>> change-distance-sensor-logic
